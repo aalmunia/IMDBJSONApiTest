@@ -1,0 +1,19 @@
+DAY 1
+
+We start the design of the test. Given the fact that the OMBD API is quite easy to use,
+the objectives are:
+
+- Design a SPA that can use the HTML5 Local Storage API to store the data that
+the user will consume while using the application. This app is the CLIENT. As such,
+it will be able to consume several data origins being theses the following:
+    
+    - OMBD API (in raw / debug mode)
+    - Wrapper API for OMBD API (pure jQuery)
+    - Wrapper JSON API for OMDB API (a backend server with connection to SQL)
+
+- The application must be usable in a desktop, tablet, and mobile environment.
+Responsiveness is a must-have.
+
+The tools used for the project, as of now, are jQuery and HTML5. Let´s start to
+learn consuming the OMBD API.
+

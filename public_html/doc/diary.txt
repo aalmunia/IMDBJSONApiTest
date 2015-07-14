@@ -17,3 +17,14 @@ Responsiveness is a must-have.
 The tools used for the project, as of now, are jQuery and HTML5. Let´s start to
 learn consuming the OMBD API.
 
+DAY 1, LATER
+
+Finished the API for consuming data. It needs more refactoring, but how it works is
+understood. Also, i added a nice functionality to scan a series, to find out
+how many seasons and episodes does it have. Added the functional test, this is the
+app template, after i implement bootstrap in it.
+
+TODO (tomorrow):
+
+    - Implement Bootstrap 3 for the view
+    - Implement Bootstrap Table for the showing of tabular data

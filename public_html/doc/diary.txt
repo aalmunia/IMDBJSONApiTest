@@ -34,3 +34,26 @@ DAY 2
 
 Beginning to implement Bootstrap 3 and some viewable nice elements. No more console-only
 testing.
+
+DAY 2, LATER
+
+Implemented Bootstrap 3, but it does not look too good. Visual HTML design is definitely not
+my strongest suit. The API handling is quite good on the other hand. I was able to scan a whole
+series and save that data in the localStorage API on the browser. I can use that to 
+save the rating and comments too, and this will look quite impressive, since that is precisely
+the server part of the test. GO, HTML5 !!!!
+
+DAY 2, LATER
+
+First YouTube functional test achieved. Looking better, now i have implemented 
+several bootstrap classes and it is more beautiful a sight. I'm going to wrap
+more things up, adding some classes where needed (Episode must not continue to
+be an errand data-struct, let's make it a defined object, shall we?)
+
+DAY 2, MUCH LATER
+
+YouTube embedded videos are working perfectly. Also, scanning a series works
+much better. The App is getting better indeed, i'm going to add some Google Search
+functionality as well, related to the series + episode, see if it finds
+anything interesting (it should). The visual... well, i'm not a very good
+artist anyway.

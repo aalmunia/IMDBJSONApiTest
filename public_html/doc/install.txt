@@ -1,0 +1,21 @@
+In order to install the application, you need:
+
+- A web server of any kind. The client is pure HTML + JS, but it needs to run in
+127.0.0.1 (or other server), because of AJAX problems in cross domain, if run from
+file:/// protocol. Make the server return the page index.html. Enjoy :-D
+
+The libraries and / or technologies used in this demo application are:
+
+- HTML5
+- jQuery / pure JS
+- Bootstrap 3
+- Bootstrap Table (http://bootstrap-table.wenzhixin.net.cn/), a plugin for
+bootstrap that allows easy to use grids. I used this because i have already
+worked with it. Other libraries considered were:
+
+        jQuery EasyUI (http://www.jeasyui.com/)
+        Datatables (https://www.datatables.net/manual/styling/bootstrap)
+
+But i sticked with this one because i really like the work the developer has
+done.
+- OMDB API

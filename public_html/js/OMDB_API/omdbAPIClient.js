@@ -17,12 +17,12 @@ function OMDBAPIClient(sInstanceName) {
     /**
      * Max number of seasons to scan for
      */
-    this.iMaxSeasons = 6;
+    this.iMaxSeasons = 2;
     
     /**
      * Max number of episodes to scan for in a season
      */
-    this.iMaxEpisodes = 12;
+    this.iMaxEpisodes = 10;
     
     this.iEpisodesAdded = 0;
     this.iEpisodesMissed = 0;
@@ -48,12 +48,15 @@ function OMDBAPIClient(sInstanceName) {
     
 }
 
-OMDBAPIClient.prototype.initObject = function() {
+OMDBAPIClient.prototype.initObject = function(iSeasons, iEpisodes) {
+    this.iMaxSeasons = (iSeasons > 0) ? iSeasons : this.iMaxSeasons;
+    this.iMaxEpisodes = (iEpisodes > 0) ? iEpisodes : this.iMaxEpisodes;
+    this.iMaxEpisodesScanned = this.iMaxSeasons * this.iMaxEpisodes;
     this.oLastScannedSeries = {};
     this.oLastScannedSeries.Seasons = new Array();
     for(var i = 0; i < this.iMaxSeasons; i++) {
         this.oLastScannedSeries.Seasons[i] = {};
-        this.oLastScannedSeries.Seasons[i].Episodes = new Array();        
+        this.oLastScannedSeries.Seasons[i].Episodes = new Array();
     }
 };
 
@@ -174,8 +177,26 @@ OMDBAPIClient.prototype.getSeriesByParams = function(oStruct) {
     this.query(oStruct);
 };
 
-OMDBAPIClient.prototype.addEpisode = function(oEpisodeData, iSeason, iEpisode) {    
-    this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisodeData;
+OMDBAPIClient.prototype.addEpisode = function(oEpisodeData, iSeason, iEpisode, sAJAXSeriesName) {    
+    // this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisodeData;
+    var oEpisode = new Episode();
+    oEpisode.sTitle = oEpisodeData.Title;
+    oEpisode.fIMDBRating = oEpisodeData.imdbRating;
+    oEpisode.iYear = oEpisodeData.Year;
+    oEpisode.sPlot = oEpisodeData.Plot;
+    oEpisode.fRuntime = oEpisodeData.Runtime;
+    oEpisode.iIMDBID = oEpisodeData.imdbID;
+    oEpisode.iIMDBVotes = oEpisodeData.imdbVotes;
+    oEpisode.iSeriesIMDBID = oEpisodeData.seriesID;
+    oEpisode.sReleaseDate = oEpisodeData.Released;
+    oEpisode.aGenres = oEpisodeData.Genre.split(",");
+    oEpisode.aActors = oEpisodeData.Actors.split(",");
+    oEpisode.sPosterURL = oEpisodeData.Poster;
+    oEpisode.iSeason = iSeason;
+    oEpisode.iEpisodeInSeason = iEpisode;
+    oEpisode.sSeriesName = sAJAXSeriesName;
+    
+    this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisode;    
     this.iEpisodesAdded++;
     /* console.log(this.iEpisodesAdded);
     console.log(this.iMaxEpisodesScanned); */
@@ -227,6 +248,7 @@ OMDBAPIClient.prototype.scanSeries = function(sSeriesName, iSeasonsMax, iEpisode
                     method: 'GET',
                     iSeason: i,
                     iEpisode: j,
+                    sAJAXSeriesName: sSeriesName,
                     /* async: false, */
                     success: function(data) {
                         if(data.Response === "True") {
@@ -239,7 +261,7 @@ OMDBAPIClient.prototype.scanSeries = function(sSeriesName, iSeasonsMax, iEpisode
                             
                             // console.log(_self);
                             // console.log(_self.oLastScannedSeries);
-                            _self.addEpisode(data, this.iSeason, this.iEpisode);
+                            _self.addEpisode(data, this.iSeason, this.iEpisode, this.sAJAXSeriesName);
                         } else {                            
                             // _self.iEpisodesAdded++;
                             _self.iEpisodesMissed++;

@@ -4,8 +4,9 @@ To change this license header, choose License Headers in Project Properties.
 To change this template file, choose Tools | Templates
 and open the template in the editor.
 -->
-<html>
+<html>    
     <head>
+        <meta charset="UTF-8">
         <title>ICE Test - OMBD JSON API</title>
         <!-- jQuery -->
         <script src="js/libs/jquery/jquery.js"></script>
@@ -13,7 +14,7 @@ and open the template in the editor.
         <!-- Bootstrap 3.3.5 -->
         <script src="js/libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
         <link rel="stylesheet" href="js/libs/bootstrap-3.3.5/css/bootstrap.css" />
-        <link rel="stylesheet" href="js/libs/bootstrap-3.3.5/css/bootstrap-responsive.css" />
+        <!-- <link rel="stylesheet" href="js/libs/bootstrap-3.3.5/css/bootstrap-responsive.css" /> -->
 
         <!-- Bootstrap Table 1.8.0 -->
         <script src="js/libs/bootstrap-table-1.8.0/bootstrap-table.js"></script>
@@ -22,17 +23,52 @@ and open the template in the editor.
         <!-- i18next 1.1.0 -->
         <script src="js/libs/i18next-1.10.1/i18next-1.10.1.js"></script>
 
+
+
+
+        <!-- IMDB API Client and required files -->
+        <script src="js/OMDB_API/Episode.js"></script>
         <script src="js/OMDB_API/omdbAPIClient.js"></script>
         <script>
-            
+
             var oClient;
+            var aSeriesLoaded = [];
+            var iSeriesLoaded = 0;
+
+            var oSelectedEpisode = {};
+
+            function initYouTube() {
+                gapi.client.setApiKey('AIzaSyCbX1LUET7Ku1De6SZZnJff6Xm-AvI2gCk');
+                loadAPIClientInterfaces();
+            }
+
+            function loadAPIClientInterfaces() {
+                gapi.client.load('youtube', 'v3', function () {
+                    handleYouTubeAPILoaded();
+                });
+                gapi.client.load('search', 'v1', function() {
+                    handleGoogleSearchLoaded();
+                });
+            }
             
+            function handleGoogleSearchLoaded() {
+                console.log("Google Search loaded");
+            }
+
+            function handleYouTubeAPILoaded() {
+                // alert('API loaded');
+                console.log("YouTube API loaded");
+                // $('#search-button').attr('disabled', false);
+            }
+
             // Start bootstrapping of app
             $(document).ready(function () {
+                
+                // initGoogleAPIS();
 
                 // Instance the API handler
                 oClient = new OMDBAPIClient();
-                oClient.initObject();
+                oClient.initObject(oClient.iMaxSeasons, oClient.iMaxEpisodes);
 
                 // Translate strings
                 i18n.init(function (err, t) {
@@ -40,102 +76,260 @@ and open the template in the editor.
                     $("#SeriesContainer").i18n();
                 });
 
+                // Get localStorage data for our series combo
+                //@TODO: This will eventually have to go elsewhere
+                if (typeof (Storage) !== "undefined") {
+                    for (var prop in localStorage) {
+                        if (prop.indexOf("OMDBAPI_Series") !== -1) {
+                            var sOptionName = prop.replace("OMDBAPI_Series_", "").replace("_", " ");
+                            var optSeriesNew = document.createElement('option');
+                            optSeriesNew.value = prop;
+                            optSeriesNew.innerHTML = sOptionName;
+                            $("#selSeriesLoaded").append(optSeriesNew);
+                            aSeriesLoaded[iSeriesLoaded] = prop;
+                            iSeriesLoaded++;
+                        }
+                    }
+                }
+
+                // Hide relevant divs, not used yet
+                $("#divSeriesDataIMDB").hide();
+
                 // This initiates an AJAX Request (several, in fact). It fires the
                 // event OMDBAPIClient::ScanSeriesFinished when it finishes...
                 $("#btnGetSeries").click(function () {
+                    var iSeasonsInput = ($("#txtSeriesMaxSeasons").val() !== "") ? $("#txtSeriesMaxSeasons").val() : oClient.iMaxSeasons;
+                    var iEpisodesInput = ($("#txtSeriesMaxEpisodes").val() !== "") ? $("#txtSeriesMaxEpisodes").val() : oClient.iMaxEpisodes;
+                    /* if(iEpisodesInput !== '') {
+                     oClient.iMaxEpisodes = parseInt(iEpisodesInput);
+                     }
+                     if(iSeasonsInput !== '') {
+                     oClient.iMaxSeasons = parseInt(iSeasonsInput);
+                     } */
+
+                    $("#SeriesDatagridContainer").html("");
+                    $("#txtEpisodePlot").html("");
+                    $("#divSeriesDataIMDB").hide();
+
+                    /* console.log("iSeasonsInput " + iSeasonsInput);
+                     console.log("iEpisodesInput " + iEpisodesInput); */
+
                     var sName = $("#txtSeriesScanName").val();
-                    oClient.scanSeries(sName, oClient.iMaxSeasons, oClient.iMaxEpisodes);
+
+                    /* oClient.iMaxEpisodes = parseInt(iEpisodesInput);
+                     oClient.iMaxSeasons = parseInt(iSeasonsInput);
+                     oClient.iMaxEpisodesScanned = oClient.iMaxSeasons * oClient.iMaxEpisodes;
+                     oClient.oLastScannedSeries = {};
+                     oClient.oLastScannedSeries.Seasons = new Array();
+                     for(var i = 0; i < oClient.iMaxSeasons; i++) {
+                     oClient.oLastScannedSeries.Seasons[i] = {};
+                     oClient.oLastScannedSeries.Seasons[i].Episodes = new Array();
+                     } */
+
+
+                    oClient.initObject(iSeasonsInput, iEpisodesInput);
+                    // oClient.scanSeries(sName, oClient.iMaxSeasons, oClient.iMaxEpisodes);
+                    oClient.scanSeries(sName, iSeasonsInput, iEpisodesInput);
                 });
-                
-                $("#btnSaveSeries").click(function() {
-                    if(typeof(Storage) !== "undefined") {
-                        var sHashMapKey = "OMDBAPI_Series_" + oClient.sSeriesName.replace(' ', '_');                        
+
+                $("#btnSaveSeries").click(function () {
+                    if (typeof (Storage) !== "undefined") {
+                        var sHashMapKey = "OMDBAPI_Series_" + oClient.sSeriesName.replace(' ', '_');
                         localStorage.setItem(sHashMapKey, JSON.stringify(oClient.oLastScannedSeries));
                     }
                 });
 
                 // ... therefore, here we capture it and create the datagrid
                 $(document).bind("OMDBAPIClient::ScanSeriesFinished", function (oEvent) {
+
                     console.log("Series scanned, showing...");
-                    $("#SeriesDatagridContainer").html("");
+
+
                     var iSeasons = oClient.oLastScannedSeries.Seasons.length;
-                    var sHTML = "";
-                    for(var i = 0; i < iSeasons; i++) {
+                    var sHTMLCaption = "<div class='container'><ul class='nav nav-tabs' role='tablist'>";
+                    var sHTMLContentPanels = "<div class='tab-content'>";
+                    
+                    $("#divSeriesTitle").html("<h2>" + oClient.oLastScannedSeries.Seasons[0].Episodes[0].sSeriesName + "</h2>");
+
+                    // Create tabs-clickable captions
+                    for (var i = 0; i < iSeasons; i++) {
                         var sNameGrid = "Grid_" + i;
-                        sHTML += "<div id='" + sNameGrid + "'></div>";
+                        sHTMLCaption += "<li role='presentation' class='";
+                        sHTMLCaption += (i === 0) ? "active" : "";
+
+                        sHTMLCaption += "'><a href='#Temporada_" + (i + 1) + "' aria-controls='Temporada_" + (i + 1) + "' data-toggle='tab'>Temporada " + (i + 1) + "</a></li>";
+                        // Create tabs content
+                        sHTMLContentPanels += "<div id='Temporada_" + (i + 1) + "' role='tabpanel' class='tab-pane";
+                        sHTMLContentPanels += (i === 0) ? " active" : "";
+                        sHTMLContentPanels += "'>";
+                        sHTMLContentPanels += "<div id='" + sNameGrid + "'></div>";
+                        sHTMLContentPanels += "</div>";
                     }
-                    $("#SeriesDatagridContainer").html(sHTML);
-                    console.log(sHTML);
-                    for(var i = 0; i < iSeasons; i++) {
+                    sHTMLCaption += "</ul>";
+                    sHTMLContentPanels += "</div></div>";
+                    var sFinalHTML = sHTMLCaption + sHTMLContentPanels;
+
+                    $("#SeriesDatagridContainer").html(sFinalHTML);
+
+                    for (var i = 0; i < iSeasons; i++) {
                         var sNameGrid = "Grid_" + i;
                         console.log($("#" + sNameGrid));
                         console.log(oClient.oLastScannedSeries.Seasons[i].Episodes);
                         $("#" + sNameGrid).bootstrapTable({
                             columns: [
-                                {field: 'Title', title: 'Título'},
-                                {field: 'imdbRating', title: 'Rating'},
-                                {field: 'Runtime', title: 'Duración'},
-                                {field: 'Year', title: 'Año'}                                
+                                {field: 'sTitle', title: 'Título'},
+                                {field: 'fIMDBRating', title: 'Rating'},
+                                {field: 'fRuntime', title: 'Duración'},
+                                {field: 'iYear', title: 'Año'},
+                                {field: 'iPersonalRating', title: 'Puntuación'},
+                                {field: 'iIMDBVotes', title: 'Votos IMDB'},
+                                {field: 'sReleaseDate', title: 'Released'},
+                                {field: '', title: '¿Favorito?', type: 'checkbox'}  //@TODO: Handlers de control de favorito
                             ],
-                            data: oClient.oLastScannedSeries.Seasons[i].Episodes
+                            data: oClient.oLastScannedSeries.Seasons[i].Episodes,
+                            onClickRow: function (oEpisode) {
+                                oSelectedEpisode = oEpisode;
+                                $("#divSeriesDataIMDB").show();
+                                if (oEpisode.sPlot !== "") {
+                                    $("#spanEpisodePlot").html(oEpisode.sPlot);
+                                }
+                                if (oEpisode.aActors.length > 0) {
+                                    $("#spanEpisodeActors").html(oEpisode.aActors.join(", "));
+                                }
+
+                                // Youtube stuff now... :-D
+                                var sReq = oEpisode.sSeriesName + " " + oEpisode.sTitle;
+                                var request = gapi.client.youtube.search.list({
+                                    q: sReq,
+                                    part: 'snippet'
+                                });
+                                
+                                /* 
+                                 * 
+                                 * <iframe id="ytplayer" type="text/html" width="640" height="390"
+                                    src="http://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&origin=http://example.com"
+                                    frameborder="0"/>
+                                 */
+                                request.execute(function (response) {                                    
+                                    console.log(response);
+                                    var sHTML = "<H4>YOUTUBE RELATED VIDEOS</H4>";
+                                    for(var i = 0; i < response.items.length; i++) {
+                                        sHTML += "<b>Title: " + response.items[i].snippet.title + "</b><br />";
+                                        console.log("http://www.youtube.com/embed/" + response.items[i].id.videoId);
+                                        sHTML += "<iframe id='ytplayer_" + i + "' type='text/html' width='320' height='200' src='http://www.youtube.com/embed/" + response.items[i].id.videoId + "' frameborder='0'></iframe><br />";
+                                    }
+                                    $("#divYouTubeResults").html(sHTML);
+                                });
+
+                                // if(a.sPosterURL !== "") {
+                                //@TODO: Check type of app. If server has image, grab it.
+                                //Otherwise, tell user nay, nay
+                                /* var sImgTag = "<a target='_blank' href='" + a.sPosterURL + "'>Open Image (hotlinking is disabled)</a>";                                
+                                 $("#imgEpisodePoster").html(sImgTag); */
+                                // }
+                            }
                         });
                     }
                 });
-                
-                $(document).bind("OMDBAPIClient::ScanSeriesNothingFound", function(oEvent) {
-                   alert("That series is not found");                   
-                   $("#SeriesDatagridContainer").html("");
+
+                $(document).bind("OMDBAPIClient::ScanSeriesNothingFound", function (oEvent) {
+                    alert("That series is not found");
+                    $("#SeriesDatagridContainer").html("");
                 });
+
+                $("#selRateEpisode").on("change", function () {
+                    console.log($("#selRateEpisode").val());
+                    console.log(oSelectedEpisode);
+                    oSelectedEpisode.iPersonalRating = $("#selRateEpisode").val();
+                    oClient.oLastScannedSeries.Seasons[oSelectedEpisode.iSeason].Episodes[oSelectedEpisode.iEpisodeInSeason] = oSelectedEpisode;
+                    console.log(oClient.oLastScannedSeries.Seasons[oSelectedEpisode.iSeason].Episodes[oSelectedEpisode.iEpisodeInSeason]);
+                    var sGridSeason = "Grid_" + oSelectedEpisode.iSeason;
+                    console.log(sGridSeason);
+                    $("#" + sGridSeason).bootstrapTable('updateRow', {index: oSelectedEpisode.iEpisodeInSeason, row: oSelectedEpisode});
+                });
+
             });
             
+            // ?onload=initYouTube
+
         </script>
-        <meta charset="UTF-8">
+
+        <!-- YouTube API -->
+        <script src="https://apis.google.com/js/client.js?onload=initYouTube"></script>
+        <link rel="stylesheet" href="css/imdbAppStyle.css" />
+
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>        
-        <nav id="mainNav" class="navbar">
-            <div class="container-fluid">
-                <div class="navbar-header">
+        <nav id="mainNav" class="navbar navbar-inverse navbar-fixed-top">            
+            <div class="container">
+                <div class="navbar" class="collapse navbar-collapse" id="myNavbar">
+                    <ul class="nav navbar-nav">
+                        <li class="active"><a href="#">Series</a></li>                    
+                        <li><a href="#">Películas</a></li>
+                        <li><a href="#">Configuración</a></li>
+                    </ul>                
                 </div>
             </div>
-
-            <div class="collapse navbar-collapse" id="myNavbar">
-                <ul class="nav navbar-nav">
-                    <li class="active">
-                        <a href="#">Series</a>
-                    </li>                    
-                    <li><a href="#">Películas</a></li>
-                    <li><a href="#">Configuración</a></li>
-                </ul>
-                <!-- <ul class="nav navbar-nav navbar-right">
-                    <li><a href="#"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
-                    <li><a href="#"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
-                </ul> -->
-            </div>
-
         </nav>
 
         <div class="container" id="SeriesContainer">
+            <div class="starter-template">
 
-            <div class="row-fluid">
-                <div class="col-sm-1"><button id="btnGetSeries" data-i18n="controls.btnGetSeries"></button></div>                
-                <div class="col-sm-1"><button id="btnSaveSeries" data-i18n="controls.btnSaveSeries"></button></div>
-                <div class="col-sm-3"><input type="text" placeholder="Serie" id="txtSeriesScanName" /></div>
-                <div class="col-sm-7">
-                    <div id="SeriesDatagridContainer">
-                        
-                    </div>                
+                <div class="row">
+                    <div class="col-sm-12" id="divSeriesTitle"></div>
+                </div>
+                <br />
+                <hr />
+                <div class="row" id="divSeriesControlsScanner">
+                    <div class="col-sm-1"><button id="btnGetSeries" data-i18n="controls.btnGetSeries"></button></div>                
+                    <div class="col-sm-1"><button id="btnSaveSeries" data-i18n="controls.btnSaveSeries"></button></div>
+                    <div class="col-sm-2"><input type="text" placeholder="Serie" id="txtSeriesScanName" /></div>
+                    <div class="col-sm-1"><input type="text" placeholder="Temporadas" id="txtSeriesMaxSeasons" /></div>
+                    <div class="col-sm-1"><input type="text" placeholder="Episodios" id="txtSeriesMaxEpisodes" /></div>
+                    <div class="col-sm-6">
+                        <select id="selSeriesLoaded"></select>
+                    </div>
+                </div>
+                <br />
+                <hr />
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div id="SeriesDatagridContainer"></div>
+                    </div>
+                </div>
+                <br />
+                <hr />
+                <div class="row" id="divSeriesDataIMDB">
+                    <div class="col-sm-9">
+                        <b>Plot: </b><span id="spanEpisodePlot"></span><br/>
+                        <b>Actors: </b><span id="spanEpisodeActors"></span>
+                    </div>                    
+                    <div class="col-sm-3">
+                        <b>Rate: </b>&nbsp;
+                        <select id="selRateEpisode">
+                            <option value="-1">Unrated</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </div>
+                </div>
+                <br />
+                <hr />
+                <div class="row">
+                    <div class="col-sm-12" id="divYouTubeResults"></div>
+                </div>
+                <br />
+                <hr />
+                <div class="row">
+                    <div class="col-sm-12" id="divGoogleSearchResults"></div>
                 </div>
             </div>
-            
-            <div class="row">
-                
-            </div>
-            
-            <div class="row">
-                
-            </div>
-            
+
         </div>
 
     </body>

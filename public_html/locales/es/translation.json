@@ -8,7 +8,7 @@
         "config": "Configuración"
     },
     "controls": {
-        "btnGetSeries": "Escanea Serie",
-        "btnSaveSeries": "Guarda Serie"
+        "btnGetSeries": "Escanea",
+        "btnSaveSeries": "Guardar"
     }
 }

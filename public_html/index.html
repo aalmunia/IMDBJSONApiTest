@@ -7,36 +7,136 @@ and open the template in the editor.
 <html>
     <head>
         <title>ICE Test - OMBD JSON API</title>
+        <!-- jQuery -->
         <script src="js/libs/jquery/jquery.js"></script>
+
+        <!-- Bootstrap 3.3.5 -->
+        <script src="js/libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="js/libs/bootstrap-3.3.5/css/bootstrap.css" />
+        <link rel="stylesheet" href="js/libs/bootstrap-3.3.5/css/bootstrap-responsive.css" />
+
+        <!-- Bootstrap Table 1.8.0 -->
+        <script src="js/libs/bootstrap-table-1.8.0/bootstrap-table.js"></script>
+        <link rel="stylesheet" href="js/libs/bootstrap-table-1.8.0/bootstrap-table.css" />
+
+        <!-- i18next 1.1.0 -->
+        <script src="js/libs/i18next-1.10.1/i18next-1.10.1.js"></script>
+
         <script src="js/OMDB_API/omdbAPIClient.js"></script>
         <script>
-            var oClient = new OMDBAPIClient();
-            var oSearchStruct_1 = {
-                type: 'movie',
-                title: 'hunt'
-            };
-            var oSearchStruct_2 = {
-                type: 'movie',
-                search: 'hunt'
-            };
-            var oSearchStruct_3 = {
-                type: 'series',
-                title: 'thrones'
-            };
-            var oSearchStruct_4 = {
-                type: 'series',
-                search: 'thrones'
-            };
-            oClient.query(oSearchStruct_1);
-            oClient.query(oSearchStruct_2);
-            oClient.query(oSearchStruct_3);
-            oClient.query(oSearchStruct_4);            
+            
+            var oClient;
+            
+            // Start bootstrapping of app
+            $(document).ready(function () {
+
+                // Instance the API handler
+                oClient = new OMDBAPIClient();
+                oClient.initObject();
+
+                // Translate strings
+                i18n.init(function (err, t) {
+                    $("#mainNav").i18n();
+                    $("#SeriesContainer").i18n();
+                });
+
+                // This initiates an AJAX Request (several, in fact). It fires the
+                // event OMDBAPIClient::ScanSeriesFinished when it finishes...
+                $("#btnGetSeries").click(function () {
+                    var sName = $("#txtSeriesScanName").val();
+                    oClient.scanSeries(sName, oClient.iMaxSeasons, oClient.iMaxEpisodes);
+                });
+                
+                $("#btnSaveSeries").click(function() {
+                    if(typeof(Storage) !== "undefined") {
+                        var sHashMapKey = "OMDBAPI_Series_" + oClient.sSeriesName.replace(' ', '_');                        
+                        localStorage.setItem(sHashMapKey, JSON.stringify(oClient.oLastScannedSeries));
+                    }
+                });
+
+                // ... therefore, here we capture it and create the datagrid
+                $(document).bind("OMDBAPIClient::ScanSeriesFinished", function (oEvent) {
+                    console.log("Series scanned, showing...");
+                    $("#SeriesDatagridContainer").html("");
+                    var iSeasons = oClient.oLastScannedSeries.Seasons.length;
+                    var sHTML = "";
+                    for(var i = 0; i < iSeasons; i++) {
+                        var sNameGrid = "Grid_" + i;
+                        sHTML += "<div id='" + sNameGrid + "'></div>";
+                    }
+                    $("#SeriesDatagridContainer").html(sHTML);
+                    console.log(sHTML);
+                    for(var i = 0; i < iSeasons; i++) {
+                        var sNameGrid = "Grid_" + i;
+                        console.log($("#" + sNameGrid));
+                        console.log(oClient.oLastScannedSeries.Seasons[i].Episodes);
+                        $("#" + sNameGrid).bootstrapTable({
+                            columns: [
+                                {field: 'Title', title: 'Título'},
+                                {field: 'imdbRating', title: 'Rating'},
+                                {field: 'Runtime', title: 'Duración'},
+                                {field: 'Year', title: 'Año'}                                
+                            ],
+                            data: oClient.oLastScannedSeries.Seasons[i].Episodes
+                        });
+                    }
+                });
+                
+                $(document).bind("OMDBAPIClient::ScanSeriesNothingFound", function(oEvent) {
+                   alert("That series is not found");                   
+                   $("#SeriesDatagridContainer").html("");
+                });
+            });
+            
         </script>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
-    <body>
-        <div>TODO write content</div>
+    <body>        
+        <nav id="mainNav" class="navbar">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                </div>
+            </div>
+
+            <div class="collapse navbar-collapse" id="myNavbar">
+                <ul class="nav navbar-nav">
+                    <li class="active">
+                        <a href="#">Series</a>
+                    </li>                    
+                    <li><a href="#">Películas</a></li>
+                    <li><a href="#">Configuración</a></li>
+                </ul>
+                <!-- <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
+                    <li><a href="#"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+                </ul> -->
+            </div>
+
+        </nav>
+
+        <div class="container" id="SeriesContainer">
+
+            <div class="row-fluid">
+                <div class="col-sm-1"><button id="btnGetSeries" data-i18n="controls.btnGetSeries"></button></div>                
+                <div class="col-sm-1"><button id="btnSaveSeries" data-i18n="controls.btnSaveSeries"></button></div>
+                <div class="col-sm-3"><input type="text" placeholder="Serie" id="txtSeriesScanName" /></div>
+                <div class="col-sm-7">
+                    <div id="SeriesDatagridContainer">
+                        
+                    </div>                
+                </div>
+            </div>
+            
+            <div class="row">
+                
+            </div>
+            
+            <div class="row">
+                
+            </div>
+            
+        </div>
+
     </body>
 </html>
-

@@ -28,3 +28,9 @@ TODO (tomorrow):
 
     - Implement Bootstrap 3 for the view
     - Implement Bootstrap Table for the showing of tabular data
+
+
+DAY 2
+
+Beginning to implement Bootstrap 3 and some viewable nice elements. No more console-only
+testing.

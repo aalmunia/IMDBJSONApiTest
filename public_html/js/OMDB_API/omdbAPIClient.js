@@ -17,15 +17,21 @@ function OMDBAPIClient(sInstanceName) {
     /**
      * Max number of seasons to scan for
      */
-    this.iMaxSeasons = 10;
+    this.iMaxSeasons = 6;
     
     /**
      * Max number of episodes to scan for in a season
      */
-    this.iMaxEpisodes = 30;
+    this.iMaxEpisodes = 12;
+    
+    this.iEpisodesAdded = 0;
+    this.iEpisodesMissed = 0;
+    this.iMaxEpisodesScanned = this.iMaxSeasons * this.iMaxEpisodes;
     
     this.iLastSeasonInserted = 0;
     this.iLastEpisodeInserted = 0;
+    
+    this.sSeriesName = "";
     
     /**
      * Base URL of the OMDB API
@@ -39,13 +45,17 @@ function OMDBAPIClient(sInstanceName) {
     
     this.sInstanceName = sInstanceName;
         
+    
+}
+
+OMDBAPIClient.prototype.initObject = function() {
     this.oLastScannedSeries = {};
     this.oLastScannedSeries.Seasons = new Array();
     for(var i = 0; i < this.iMaxSeasons; i++) {
         this.oLastScannedSeries.Seasons[i] = {};
         this.oLastScannedSeries.Seasons[i].Episodes = new Array();        
-    }    
-}
+    }
+};
 
 /**
  * This method makes the queries to the OMDB JSON API and stores
@@ -166,6 +176,13 @@ OMDBAPIClient.prototype.getSeriesByParams = function(oStruct) {
 
 OMDBAPIClient.prototype.addEpisode = function(oEpisodeData, iSeason, iEpisode) {    
     this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisodeData;
+    this.iEpisodesAdded++;
+    /* console.log(this.iEpisodesAdded);
+    console.log(this.iMaxEpisodesScanned); */
+    if((this.iEpisodesAdded + this.iEpisodesMissed) === this.iMaxEpisodesScanned) {
+        this.cleanSeriesArray();
+        $.event.trigger("OMDBAPIClient::ScanSeriesFinished", this.sInstanceName);
+    }
 };
 
 OMDBAPIClient.prototype.cleanSeriesArray = function() {
@@ -180,40 +197,92 @@ OMDBAPIClient.prototype.cleanSeriesArray = function() {
     this.oLastScannedSeries.Seasons.splice(iCut, (iSeasons - i));
 };
 
+OMDBAPIClient.prototype.seriesSeasonEpisodeURL = function(sSeriesName, iSeason, iEpisode) {
+    return this.sOMDBAPIBaseURL + "?t=" + sSeriesName + "&Season=" + (iSeason + 1) + "&Episode=" + (iEpisode + 1);
+};
+
 /**
  * This method scans a series by its title. It tries to retrieve iSeasonsMax
  * seasons, and iMaxEpisodes in each season.
  * @TODO: More efficient, there is quite a lot of free space in the data struct
+ * @TODO: Refactor for when.then using jQuery deferred objects.
+ * Tried to, cannot find how to access the success handler of each defered object :-(
  * @param {String} sSeriesName The name of the series
  * @param {Integer} iSeasonsMax The max number of seasons to scan for
  * @param {Integer} iEpisodesMax The max number of episodes to scan for in each season
  * @returns {undefined}
  */
-OMDBAPIClient.prototype.scanSeries = function(sSeriesName, iSeasonsMax, iEpisodesMax) {
-    for(var i = 0; i < iSeasonsMax; i++) {        
-        for(var j = 0; j < iEpisodesMax; j++) {            
-            var sUrl = this.sOMDBAPIBaseURL + "?t=" + sSeriesName + "&Season=" + (i + 1) + "&Episode=" + (j + 1);
-            var _self = this;
-            $.ajax({
-                url: sUrl,
-                type: 'json',
-                method: 'GET',
-                iSeason: i,
-                iEpisode: j,
-                success: function(oData) {
-                    
-                    if(oData.Response === "True") {
-                        _self.addEpisode(oData, this.iSeason, this.iEpisode);
-                    }
-                    
-                    if(this.iSeason === (iSeasonsMax - 1)) {                        
-                        if(this.iEpisode === (iEpisodesMax - 1)) {
-                            _self.cleanSeriesArray();
-                            $.event.trigger("OMDBAPIClient::ScanSeriesFinished", _self.sInstanceName);
+OMDBAPIClient.prototype.scanSeries = function(sSeriesName, iSeasonsMax, iEpisodesMax) {    
+        this.iEpisodesAdded = 0;
+        this.iEpisodesMissed = 0;
+        this.initObject();
+        this.sSeriesName = sSeriesName;
+        for(var i = 0; i < iSeasonsMax; i++) {        
+            for(var j = 0; j < iEpisodesMax; j++) {            
+                var sUrl = this.seriesSeasonEpisodeURL(sSeriesName, i, j);
+                var _self = this;
+                $.ajax({
+                    url: sUrl,
+                    type: 'json',
+                    method: 'GET',
+                    iSeason: i,
+                    iEpisode: j,
+                    /* async: false, */
+                    success: function(data) {
+                        if(data.Response === "True") {
+                            // console.log(iSeason);
+                            /* _self.oLastScannedSeries.Seasons[this.iSeason].Episodes[this.iEpisode] = {};
+                            _self.oLastScannedSeries.Seasons[this.iSeason].Episodes[this.iEpisode].Title = data.Title;
+                            _self.oLastScannedSeries.Seasons[this.iSeason].Episodes[this.iEpisode].imdbRating = data.imdbRating; */
+                            
+                            
+                            
+                            // console.log(_self);
+                            // console.log(_self.oLastScannedSeries);
+                            _self.addEpisode(data, this.iSeason, this.iEpisode);
+                        } else {                            
+                            // _self.iEpisodesAdded++;
+                            _self.iEpisodesMissed++;
+                            if(_self.iEpisodesMissed === _self.iMaxEpisodesScanned) {
+                                $.event.trigger("OMDBAPIClient::ScanSeriesNothingFound", this.sInstanceName);
+                            } else if((_self.iEpisodesAdded + _self.iEpisodesMissed) === _self.iMaxEpisodesScanned) {
+                                _self.cleanSeriesArray();
+                                $.event.trigger("OMDBAPIClient::ScanSeriesFinished", this.sInstanceName);
+                            }
                         }
+                        /*- if(this.iSeason === (iSeasonsMax - 1)) {
+                            if(this.iEpisode === (iEpisodesMax - 1)) {
+                                // _self.cleanSeriesArray();
+                                setTimeout($.event.trigger("OMDBAPIClient::ScanSeriesFinished", _self.sInstanceName), 15000);
+                            }
+                        } */
                     }
-                }
+                });
+            }        
+        }
+        /* _self.cleanSeriesArray();
+        $.event.trigger("OMDBAPIClient::ScanSeriesFinished", _self.sInstanceName); */
+        
+        // console.log(aDeferAjaxReq);
+        // var _self = this;
+        
+        // $.when(aDeferAjaxReq).then(function(a,b, c) {
+           /* console.log(a);
+           console.log(b);
+           console.log(c); */           
+        // });
+        
+        /* $.when(_self, $.each(aDeferAjaxReq, function(i, oAjax) {
+            oAjax.success(function(data) {
+               console.log(data); 
             });
-        }        
-    }    
+        })).then(function(data, aReq) {
+            
+        }).fail(function() {
+            
+        }).always(function() {
+            // Fire final event
+            _self.cleanSeriesArray();
+            $.event.trigger("OMDBAPIClient::ScanSeriesFinished", _self.sInstanceName);           
+        }); */
 };

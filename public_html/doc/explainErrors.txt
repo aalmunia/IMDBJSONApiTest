@@ -1,0 +1,11 @@
+Error JS in Browser, says: 
+GET chrome-extension://boadgeojelhgndaghljhdicfkmllpafd/cast_sender.js net::ERR_FAILED
+
+Explaining:
+This is a YouTube error, has nothing to do with the code itself.
+
+Documentation:
+http://stackoverflow.com/questions/24490323/google-chrome-cast-sender-error-if-chrome-cast-extension-is-not-installed-or-usi
+http://stackoverflow.com/questions/25814914/chrome-youtube-cast-sender-js-console-error
+
+

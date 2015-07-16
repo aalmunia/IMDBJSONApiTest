@@ -1,0 +1,9 @@
+DEFINITION OF BACKEND API:
+
+- Runs in PHP, node.js
+- Routes:
+
+GET /series/[season]/[episode]/
+GET /series-scan/[series_search_value]/[seasons]/[episodes]/
+GET /episode-image/[idIMDB]/
+POST /episode-rate/[idIMDB]/[rating]/

@@ -65,3 +65,12 @@ this little project. And gotta implement somehow the old google search api.
 
 https://www.googleapis.com/customsearch/v1?key=AIzaSyBxsWq60ZRt0EjoEKT_GfU8K_L0G1opsBM&cx=12&q=....
 https://duckduckgo.com/api too
+
+DAY 3
+
+In order to implement the data dependency injection that i would like to implement,
+i'm going to have to redesing and refactor quite a lot of the code. With that idea
+in mind, i'm going to clean the code, and begin preparing the refactoring, wich
+i hope will take only today. Once the code is clean, i'll push the master
+branch and start a new branch, because the code works as of now, and i do not
+want to have an unusable version in my hands.

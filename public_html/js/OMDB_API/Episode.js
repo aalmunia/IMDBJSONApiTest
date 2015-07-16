@@ -15,4 +15,5 @@ function Episode() {
     this.iSeriesIMDBID = 0;
     this.sReleaseDate = ""; //@TODO: Date format, filter
     this.sSeriesName = "";
+    this.sPosterURL = "";
 };

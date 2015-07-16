@@ -1,6 +1,52 @@
-var oClient = new OMDBAPIClient();
+$(document).bind("OMDBAPIClient::SearchMovies::OK", function(oEvent, oData) {    
+    console.log("OMDBAPIClient::SearchMovies::OK");
+    console.log(oData);
+});
 
-QUnit.test("OMBD API Client Tests", function(assert) {
+$(document).bind("OMDBAPIClient::SearchMovies::KO", function(oErrorData) {
+    console.log(oErrorData);
+});
+
+$(document).bind("OMDBAPIClient::GetMovieByTitle::OK", function(oEvent, oData) {
+    console.log("OMDBAPIClient::GetMovieByTitle::OK");
+    console.log(oData);
+});
+
+$(document).bind("OMDBAPIClient::GetMovieByID::OK", function(oEvent, oData) {
+    console.log("OMDBAPIClient::GetMovieByID::OK");
+    console.log(oData);
+});
+
+$(document).bind("OMDBAPIClient::GetSeriesByTitle::OK", function(oEvent, oData) {
+    console.log("OMDBAPIClient::GetSeriesByTitle::OK");
+    console.log(oData);
+});
+
+$(document).bind("OMDBAPIClient::GetSeriesByID::OK", function(oEvent, oData) {
+    console.log("OMDBAPIClient::GetSeriesByID::OK");
+    console.log(oData);
+});
+
+$(document).bind("OMDBAPIClient::SearchSeries::OK", function(oEvent, oData) {
+    console.log("OMDBAPIClient::SearchSeries::OK");
+    console.log(oData);
+});
+
+$(document).bind("OMDBAPIClient::GetEpisodeBySeriesName::OK", function(oEvent, oData) {
+    console.log("OMDBAPIClient::GetEpisodeBySeriesName::OK");
+    console.log(oData);
+});
+
+var oClient = new OMDBAPIClient();
+oClient.searchMovies("The Hunt");
+oClient.getMovieByTitle("Avatar");
+oClient.getMovieByID("tt0499549");
+oClient.getSeriesByTitle("boardwalk");
+oClient.getSeriesByID("tt0078886");
+oClient.searchSeries("rome");
+oClient.getEpisodeBySeriesName("Game of thrones", 2, 3);
+
+/* QUnit.test("OMBD API Client Tests", function(assert) {
     
     // We set async mode to false to be able to test the results without need for
     // callbacks and more complex structures    
@@ -25,4 +71,4 @@ QUnit.test("OMBD API Client Tests", function(assert) {
     };
     oClient.getSeriesByParams(oSeriesParams);
     assert.equal(1, oClient.oAPILastQueryData.Search.length, "There is only one 'Game of thrones' series in 2011. Winter is coming...");    
-});
+}); */

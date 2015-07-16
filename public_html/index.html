@@ -8,6 +8,10 @@ and open the template in the editor.
     <head>
         <meta charset="UTF-8">
         <title>EIC Test - OMBD JSON API</title>
+        
+        <!-- Application configuration values -->
+        <script src="js/config.js"></script>
+        
         <!-- jQuery -->
         <script src="js/libs/jquery/jquery.js"></script>
 
@@ -23,21 +27,26 @@ and open the template in the editor.
         <script src="https://www.google.com/jsapi" type="text/javascript"></script>        
         <!-- i18next 1.1.0 -->
         <script src="js/libs/i18next-1.10.1/i18next-1.10.1.js"></script>
+        
         <!-- IMDB API Client and required files -->
+        <script src="js/OMDB_API/DataOriginURLServices.config.js"></script>        
         <script src="js/OMDB_API/Episode.js"></script>
-        <script src="js/OMDB_API/omdbAPIClient.js"></script>
+        <script src="js/OMDB_API/OMDBAPIClient.js"></script>
+        
+        <!-- Miscellaneous functions for application -->
+        <script src="js/eventBindings.js"></script>
+        <script src="js/functions.js"></script>
+        
         <script>
             
             String.prototype.capitalize = function() {
                return this.charAt(0).toUpperCase() + this.slice(1);
             }
-
-            var oClient;
+            
+            var oClient;            
             var aSeriesLoaded = [];
             var iSeriesLoaded = 0;
-
-            var oSelectedEpisode = {};
-
+            
             function initYouTube() {
                 gapi.client.setApiKey('AIzaSyCbX1LUET7Ku1De6SZZnJff6Xm-AvI2gCk');
                 loadAPIClientInterfaces();
@@ -59,6 +68,11 @@ and open the template in the editor.
                 // Instance the API handler
                 oClient = new OMDBAPIClient();
                 oClient.initObject(oClient.iMaxSeasons, oClient.iMaxEpisodes);
+                
+                // Hide relevant divs, not used yet, we don't have any 
+                // selected Episode in the app load
+                $("#divSeriesDataIMDB").hide();
+                $("#divEpisodeOwnReview").hide();
 
                 // var userLang = navigator.language || navigator.userLanguage;
                 // Hacer i18n con un fichero JSON propio
@@ -84,20 +98,14 @@ and open the template in the editor.
                     }
                 }
 
-                // Hide relevant divs, not used yet
-                $("#divSeriesDataIMDB").hide();
+                
 
                 // This initiates an AJAX Request (several, in fact). It fires the
                 // event OMDBAPIClient::ScanSeriesFinished when it finishes...
                 $("#btnGetSeries").click(function () {
                     var iSeasonsInput = ($("#txtSeriesMaxSeasons").val() !== "") ? $("#txtSeriesMaxSeasons").val() : oClient.iMaxSeasons;
                     var iEpisodesInput = ($("#txtSeriesMaxEpisodes").val() !== "") ? $("#txtSeriesMaxEpisodes").val() : oClient.iMaxEpisodes;
-
-                    $("#SeriesDatagridContainer").html("");
-                    $("#txtEpisodePlot").html("");
-                    $("#divYouTubeResults").html("");
-                    $("#divSeriesTitle").html("");
-                    $("#divSeriesDataIMDB").hide();
+                    hideEpisodeData();
 
                     var sName = $("#txtSeriesScanName").val();
                     oClient.initObject(iSeasonsInput, iEpisodesInput);
@@ -150,8 +158,10 @@ and open the template in the editor.
                         console.log($("#" + sNameGrid));
                         console.log(oClient.oLastScannedSeries.Seasons[i].Episodes);
                         $("#" + sNameGrid).bootstrapTable({
-                            sortable: true,                            
-                            search:true,
+                            sortable: true,
+                            maintainSelected: true,
+                            classes: 'table table-hover table-condensed',
+                            /*  earch:true, */
                             columns: [
                                 {field: 'iEpisodeInSeason', title: 'Episodio', formatter: function (value) {
                                         return value + 1;
@@ -183,9 +193,13 @@ and open the template in the editor.
                                     return false;
                                 }
                             }, */
-                            onClickRow: function (oEpisode) {
+                            onClickRow: function (oEpisode, b, c) {
                                 oSelectedEpisode = oEpisode;
+                                if(oEpisode.iIMDBID === 0) {
+                                    return false;
+                                }                                
                                 $("#divSeriesDataIMDB").show();
+                                $("#divEpisodeOwnReview").show();
                                 if (oEpisode.sPlot !== "") {
                                     $("#spanEpisodePlot").html(oEpisode.sPlot);
                                 }
@@ -198,7 +212,7 @@ and open the template in the editor.
                                 var request = gapi.client.youtube.search.list({
                                     q: sReq,
                                     part: 'snippet',
-                                    maxResults: 10
+                                    maxResults: 7
                                 });
 
                                 /* 
@@ -227,16 +241,18 @@ and open the template in the editor.
                                         }
                                     }
                                     $("#divYouTubeResults").html(sHTML);
+                                    document.getElementById("aLinkImage").href = oEpisode.sPosterURL;
+                                    document.getElementById("imgEpisodeImage").src = oEpisode.sPosterURL;
                                 });
                             }
                         });
                     }
                 });
 
-                $(document).bind("OMDBAPIClient::ScanSeriesNothingFound", function (oEvent) {
+                /* $(document).bind("OMDBAPIClient::ScanSeriesNothingFound", function (oEvent) {
                     alert("That series is not found");
                     $("#SeriesDatagridContainer").html("");
-                });
+                }); */
 
                 $("#selRateEpisode").on("change", function () {
                     console.log($("#selRateEpisode").val());
@@ -282,7 +298,16 @@ and open the template in the editor.
         </nav>
 
         <div class="container" id="SeriesContainer">
-            <div class="starter-template">                
+            <div class="starter-template">
+                <div class="row small">
+                    <div class="col-sm-12" style="text-align: left;">
+                        Escanea una serie. Inserta el nombre de la serie a escanear, la cantidad de temporadas
+                        que quieres escanear, y cuantos episodios por temporada. Si exceden el tamaño de la serie,
+                        no hay problema. Si la serie es muy grande (Los Simpson, +20 Temporadas, +15 Capítulos),
+                        tardará un rato bien largo.
+                    </div>
+                </div>
+                <br />
                 <div class="row small" id="divSeriesControlsScanner">                    
                     <div class="col-sm-1"><button class="btn-primary" id="btnGetSeries" data-i18n="controls.btnGetSeries">Escanea</button></div>                
                     <div class="col-sm-1"><button class="btn-primary" id="btnSaveSeries" data-i18n="controls.btnSaveSeries">Guardar</button></div>
@@ -308,9 +333,11 @@ and open the template in the editor.
                 <br />
                 <hr />
                 <div class="row small" id="divSeriesDataIMDB">
-                    <div class="col-sm-9">
+                    <div class="col-sm-9" style="text-align: left;">
                         <b>Plot: </b><span id="spanEpisodePlot"></span><br/>
-                        <b>Actors: </b><span id="spanEpisodeActors"></span>
+                        <b>Actors: </b><span id="spanEpisodeActors"></span><br />
+                        <a id="aLinkImage" target="_blank" rel="noreferrer">Link a la imagen (Sorry, hotlinking not allowed)</a><br />
+                        <img id="imgEpisodeImage" src="" />
                     </div>                    
                     <div class="col-sm-3">
                         <b>Rate: </b>&nbsp;
@@ -327,6 +354,14 @@ and open the template in the editor.
                 </div>
                 <br />
                 <hr />
+                <div class="row small" id="divEpisodeOwnReview">
+                    <div class="col-sm-4">Write own review: </div>
+                    <div class="col-sm-8">
+                        <textarea cols="50" rows="5" id="txtOwnReview" placeholder="Write your own review!"></textarea>
+                    </div>
+                </div>
+                <br />
+                <hr />
                 <div id="divYouTubeResults">
                     
                 </div>
@@ -338,7 +373,7 @@ and open the template in the editor.
             </div>
 
         </div>
-        <div id="searchcontrol"></div>
+        <!-- <img src="http://ia.media-imdb.com/images/M/MV5BMTM1MzYwNTcyMV5BMl5BanBnXkFtZTcwNjkxMzkxNA@@._V1_SX300.jpg" /> -->
 
     </body>
 </html>

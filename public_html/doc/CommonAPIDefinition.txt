@@ -1,0 +1,59 @@
+All the JS Clients, independent from their data origin, must
+be able to fulfill the following interface:
+
+function initObject(iSeasons, iEpisodes) -> Resets the internal array of
+series data, allowing for a new series scan. This is obviously technical
+debt on my part. TODO: Eliminate this from interface
+
+function getEpisodeBySeriesName(sSeriesName, iSeason, iEpisode) -> Must fire
+event OMDBAPIClient::EpisodeBySeriesName::OK event, along with the episode
+data. Can fire OMDBAPIClient::EpisodeBySeriesName::KO, indicating an error
+in the operation.
+
+JS:OK ,DataOrigin: OK
+
+
+function scanSeriesIMDB(sSeriesName, iSeasonsScanMax, iEpisodesScanMax) -> Must
+fire event OMDBAPIClient::ScanSeries::OK, along with the data from the scanned
+series if operation was OK. Can fire OMDBAPIClient::ScanSeries::KO, 
+indicating an error in the operation.
+
+
+
+function searchSeries(sSeriesName) -> Must fire event OMDBAPIClient::SearchSeries::OK,
+along with the search results if operation was OK. Can fire OMDBAPIClient::SearchSeries::KO, 
+indicating an error in the operation.
+
+JS: OK, DataOrigin: OK
+
+
+function getSeriesByID(iIMDBID) -> Must fire event OMDBAPIClient::GetSeriesByIMDBID::OK,
+along with the search results, if the operation was OK. Can fire OMDBAPIClient::GetSeriesByIMDBID::KO
+
+JS: OK, DataOrigin: OK
+
+
+function getSeriesByTitle(sSeriesTitle) -> Must fire event OMDBAPIClient::GetSeriesByTitle::OK,
+along with the result. Can fire OMDBAPIClient::GetSeriesByTitle::KO
+
+JS: OK, DataOrigin: OK
+
+
+function searchMovies(sSeriesName) -> Must fire event OMDBAPIClient::SearchMovies::OK,
+along with the search results. Can fire OMDBAPIClient::SearchMovies::KO
+
+JS: OK, DataOrigin: OK
+
+
+function getMovieByID(iIMDBID) -> Must fire event OMDBAPIClient::GetMovieByIMDBID::OK,
+along with the search results. Can fire  OMDBAPIClient::GetMovieByIMDBID::OK
+
+JS: OK, DataOrigin: OK
+
+function getMovieByTitle(sMovieTitle) -> Must fire event OMDBAPIClient::GetMovieByTitle::OK.
+Can fire OMDBAPIClient::GetMovieByTitle::KO
+
+JS: OK, DataOrigin: OK
+
+(TODO: If i ever implement the Rotten Tomatoes API, if they ever register my account,
+that is, i should refactor this API to contemplate it. Or make another API)

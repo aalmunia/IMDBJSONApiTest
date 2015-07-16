@@ -10,5 +10,8 @@
     "controls": {
         "btnGetSeries": "Escanea",
         "btnSaveSeries": "Guardar"
+    },
+    "grid": {
+        "title": "Título"
     }
 }

@@ -57,3 +57,11 @@ much better. The App is getting better indeed, i'm going to add some Google Sear
 functionality as well, related to the series + episode, see if it finds
 anything interesting (it should). The visual... well, i'm not a very good
 artist anyway.
+
+DAY 2, MUCH MUCH LATER
+
+Node backend. And MySQL. It's very late. Gotta go to sleep NOW. I'm hooked to
+this little project. And gotta implement somehow the old google search api.
+
+https://www.googleapis.com/customsearch/v1?key=AIzaSyBxsWq60ZRt0EjoEKT_GfU8K_L0G1opsBM&cx=12&q=....
+https://duckduckgo.com/api too

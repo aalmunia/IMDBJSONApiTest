@@ -18,4 +18,8 @@ worked with it. Other libraries considered were:
 
 But i sticked with this one because i really like the work the developer has
 done.
+
 - OMDB API
+- YouTube API
+- Node.js
+- MySQL

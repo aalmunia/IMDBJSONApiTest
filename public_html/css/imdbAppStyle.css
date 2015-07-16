@@ -15,3 +15,6 @@ body {
   padding: 40px 15px;
   text-align: center;
 }
+
+.navbar-nav > li > a {padding-top:10px !important; padding-bottom:10px !important;}
+.navbar {min-height:40px !important}

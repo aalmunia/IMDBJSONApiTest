@@ -20,16 +20,17 @@ and open the template in the editor.
         <script src="js/libs/bootstrap-table-1.8.0/bootstrap-table.js"></script>
         <link rel="stylesheet" href="js/libs/bootstrap-table-1.8.0/bootstrap-table.css" />
 
+        <script src="https://www.google.com/jsapi" type="text/javascript"></script>        
         <!-- i18next 1.1.0 -->
         <script src="js/libs/i18next-1.10.1/i18next-1.10.1.js"></script>
-
-
-
-
         <!-- IMDB API Client and required files -->
         <script src="js/OMDB_API/Episode.js"></script>
         <script src="js/OMDB_API/omdbAPIClient.js"></script>
         <script>
+            
+            String.prototype.capitalize = function() {
+               return this.charAt(0).toUpperCase() + this.slice(1);
+            }
 
             var oClient;
             var aSeriesLoaded = [];
@@ -45,25 +46,18 @@ and open the template in the editor.
             function loadAPIClientInterfaces() {
                 gapi.client.load('youtube', 'v3', function () {
                     handleYouTubeAPILoaded();
-                });
-                gapi.client.load('search', 'v1', function() {
-                    handleGoogleSearchLoaded();
-                });
-            }
-            
-            function handleGoogleSearchLoaded() {
-                console.log("Google Search loaded");
+                });                
             }
 
             function handleYouTubeAPILoaded() {
                 // alert('API loaded');
                 console.log("YouTube API loaded");
                 // $('#search-button').attr('disabled', false);
-            }
-
+            }            
+            
             // Start bootstrapping of app
             $(document).ready(function () {
-                
+
                 // initGoogleAPIS();
 
                 // Instance the API handler
@@ -100,35 +94,15 @@ and open the template in the editor.
                 $("#btnGetSeries").click(function () {
                     var iSeasonsInput = ($("#txtSeriesMaxSeasons").val() !== "") ? $("#txtSeriesMaxSeasons").val() : oClient.iMaxSeasons;
                     var iEpisodesInput = ($("#txtSeriesMaxEpisodes").val() !== "") ? $("#txtSeriesMaxEpisodes").val() : oClient.iMaxEpisodes;
-                    /* if(iEpisodesInput !== '') {
-                     oClient.iMaxEpisodes = parseInt(iEpisodesInput);
-                     }
-                     if(iSeasonsInput !== '') {
-                     oClient.iMaxSeasons = parseInt(iSeasonsInput);
-                     } */
 
                     $("#SeriesDatagridContainer").html("");
                     $("#txtEpisodePlot").html("");
+                    $("#divYouTubeResults").html("");
+                    $("#divSeriesTitle").html("");
                     $("#divSeriesDataIMDB").hide();
 
-                    /* console.log("iSeasonsInput " + iSeasonsInput);
-                     console.log("iEpisodesInput " + iEpisodesInput); */
-
                     var sName = $("#txtSeriesScanName").val();
-
-                    /* oClient.iMaxEpisodes = parseInt(iEpisodesInput);
-                     oClient.iMaxSeasons = parseInt(iSeasonsInput);
-                     oClient.iMaxEpisodesScanned = oClient.iMaxSeasons * oClient.iMaxEpisodes;
-                     oClient.oLastScannedSeries = {};
-                     oClient.oLastScannedSeries.Seasons = new Array();
-                     for(var i = 0; i < oClient.iMaxSeasons; i++) {
-                     oClient.oLastScannedSeries.Seasons[i] = {};
-                     oClient.oLastScannedSeries.Seasons[i].Episodes = new Array();
-                     } */
-
-
                     oClient.initObject(iSeasonsInput, iEpisodesInput);
-                    // oClient.scanSeries(sName, oClient.iMaxSeasons, oClient.iMaxEpisodes);
                     oClient.scanSeries(sName, iSeasonsInput, iEpisodesInput);
                 });
 
@@ -149,7 +123,9 @@ and open the template in the editor.
                     var sHTMLCaption = "<div class='container'><ul class='nav nav-tabs' role='tablist'>";
                     var sHTMLContentPanels = "<div class='tab-content'>";
                     
-                    $("#divSeriesTitle").html("<h2>" + oClient.oLastScannedSeries.Seasons[0].Episodes[0].sSeriesName + "</h2>");
+                    var sSeriesTitle = "<h2>" + oClient.oLastScannedSeries.Seasons[0].Episodes[0].sSeriesName.capitalize() + "</h2>";
+
+                    $("#divSeriesTitle").html(sSeriesTitle);
 
                     // Create tabs-clickable captions
                     for (var i = 0; i < iSeasons; i++) {
@@ -176,17 +152,38 @@ and open the template in the editor.
                         console.log($("#" + sNameGrid));
                         console.log(oClient.oLastScannedSeries.Seasons[i].Episodes);
                         $("#" + sNameGrid).bootstrapTable({
+                            sortable: true,                            
+                            search:true,
                             columns: [
-                                {field: 'sTitle', title: 'Título'},
-                                {field: 'fIMDBRating', title: 'Rating'},
+                                {field: 'iEpisodeInSeason', title: 'Episodio', formatter: function (value) {
+                                        return value + 1;
+                                    }, sortable: true},
+                                {field: 'sTitle', title: 'Título', sortable: true},
+                                {field: 'fIMDBRating', title: 'Rating', sortable: true},
                                 {field: 'fRuntime', title: 'Duración'},
                                 {field: 'iYear', title: 'Año'},
-                                {field: 'iPersonalRating', title: 'Puntuación'},
+                                {field: 'iPersonalRating', title: 'Puntuación', sortable: true},
+                                /*
+                                 * , formatter: function(value, row, index) {
+                                        var sHTML = "<select id='Rate'>";
+                                        for(var i = 0; i < 5; i++) {
+                                            sHTML += "<option value='" + (i + 1) + "'>" + (i + 1) + "</option>";
+                                        }
+                                        sHTML += "</select>";
+                                        return sHTML;
+                                }
+                                 */
                                 {field: 'iIMDBVotes', title: 'Votos IMDB'},
                                 {field: 'sReleaseDate', title: 'Released'},
                                 {field: '', title: '¿Favorito?', type: 'checkbox'}  //@TODO: Handlers de control de favorito
                             ],
                             data: oClient.oLastScannedSeries.Seasons[i].Episodes,
+                            /* onClickCell: function(field, value, row, element) {
+                                console.log(field);
+                                if(field === "iPersonalRating") {
+                                    return false;
+                                }
+                            }, */
                             onClickRow: function (oEpisode) {
                                 oSelectedEpisode = oEpisode;
                                 $("#divSeriesDataIMDB").show();
@@ -201,32 +198,26 @@ and open the template in the editor.
                                 var sReq = oEpisode.sSeriesName + " " + oEpisode.sTitle;
                                 var request = gapi.client.youtube.search.list({
                                     q: sReq,
-                                    part: 'snippet'
+                                    part: 'snippet',
+                                    maxResults: 3
                                 });
-                                
+
                                 /* 
                                  * 
                                  * <iframe id="ytplayer" type="text/html" width="640" height="390"
-                                    src="http://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&origin=http://example.com"
-                                    frameborder="0"/>
+                                 src="http://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&origin=http://example.com"
+                                 frameborder="0"/>
                                  */
-                                request.execute(function (response) {                                    
+                                request.execute(function (response) {
                                     console.log(response);
                                     var sHTML = "<H4>YOUTUBE RELATED VIDEOS</H4>";
-                                    for(var i = 0; i < response.items.length; i++) {
+                                    for (var i = 0; i < response.items.length; i++) {
                                         sHTML += "<b>Title: " + response.items[i].snippet.title + "</b><br />";
                                         console.log("http://www.youtube.com/embed/" + response.items[i].id.videoId);
                                         sHTML += "<iframe id='ytplayer_" + i + "' type='text/html' width='320' height='200' src='http://www.youtube.com/embed/" + response.items[i].id.videoId + "' frameborder='0'></iframe><br />";
                                     }
                                     $("#divYouTubeResults").html(sHTML);
                                 });
-
-                                // if(a.sPosterURL !== "") {
-                                //@TODO: Check type of app. If server has image, grab it.
-                                //Otherwise, tell user nay, nay
-                                /* var sImgTag = "<a target='_blank' href='" + a.sPosterURL + "'>Open Image (hotlinking is disabled)</a>";                                
-                                 $("#imgEpisodePoster").html(sImgTag); */
-                                // }
                             }
                         });
                     }
@@ -247,10 +238,7 @@ and open the template in the editor.
                     console.log(sGridSeason);
                     $("#" + sGridSeason).bootstrapTable('updateRow', {index: oSelectedEpisode.iEpisodeInSeason, row: oSelectedEpisode});
                 });
-
             });
-            
-            // ?onload=initYouTube
 
         </script>
 
@@ -260,47 +248,56 @@ and open the template in the editor.
 
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
-    <body>        
-        <nav id="mainNav" class="navbar navbar-inverse navbar-fixed-top">            
-            <div class="container">
-                <div class="navbar" class="collapse navbar-collapse" id="myNavbar">
+    <body>
+
+        <nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
+            <div class="container-fluid" id="navfluid">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navigationbar">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">IMDB API App</a>
+                </div>
+                <div class="collapse navbar-collapse" id="navigationbar">
                     <ul class="nav navbar-nav">
-                        <li class="active"><a href="#">Series</a></li>                    
+                        <li class="active"><a href="#">Series</a></li>
                         <li><a href="#">Películas</a></li>
-                        <li><a href="#">Configuración</a></li>
-                    </ul>                
+                        <li><a href="#">Configuración</a></li>                        
+                    </ul>
                 </div>
             </div>
         </nav>
 
         <div class="container" id="SeriesContainer">
-            <div class="starter-template">
-
-                <div class="row">
-                    <div class="col-sm-12" id="divSeriesTitle"></div>
-                </div>
-                <br />
-                <hr />
-                <div class="row" id="divSeriesControlsScanner">
-                    <div class="col-sm-1"><button id="btnGetSeries" data-i18n="controls.btnGetSeries"></button></div>                
-                    <div class="col-sm-1"><button id="btnSaveSeries" data-i18n="controls.btnSaveSeries"></button></div>
-                    <div class="col-sm-2"><input type="text" placeholder="Serie" id="txtSeriesScanName" /></div>
-                    <div class="col-sm-1"><input type="text" placeholder="Temporadas" id="txtSeriesMaxSeasons" /></div>
-                    <div class="col-sm-1"><input type="text" placeholder="Episodios" id="txtSeriesMaxEpisodes" /></div>
-                    <div class="col-sm-6">
+            <div class="starter-template">                
+                <div class="row small" id="divSeriesControlsScanner">                    
+                    <div class="col-sm-1"><button class="btn-primary" id="btnGetSeries" data-i18n="controls.btnGetSeries"></button></div>                
+                    <div class="col-sm-1"><button class="btn-primary" id="btnSaveSeries" data-i18n="controls.btnSaveSeries"></button></div>
+                    <div class="col-sm-2"><input type="text" placeholder="Series" id="txtSeriesScanName" /></div>
+                    <div class="col-sm-2"><input type="text" placeholder="Temporadas" id="txtSeriesMaxSeasons" /></div>
+                    <div class="col-sm-2"><input type="text" placeholder="Episodios" id="txtSeriesMaxEpisodes" /></div>
+                    <div class="col-sm-4">
                         <select id="selSeriesLoaded"></select>
                     </div>
                 </div>
                 <br />
                 <hr />
-                <div class="row">
+                <div class="row small">
+                    <div class="col-sm-12" id="divSeriesTitle"></div>
+                </div>
+                <br />
+                <hr />
+                <div class="row small">
                     <div class="col-sm-12">
                         <div id="SeriesDatagridContainer"></div>
                     </div>
                 </div>
                 <br />
                 <hr />
-                <div class="row" id="divSeriesDataIMDB">
+                <div class="row small" id="divSeriesDataIMDB">
                     <div class="col-sm-9">
                         <b>Plot: </b><span id="spanEpisodePlot"></span><br/>
                         <b>Actors: </b><span id="spanEpisodeActors"></span>
@@ -320,17 +317,18 @@ and open the template in the editor.
                 </div>
                 <br />
                 <hr />
-                <div class="row">
+                <div class="row small">
                     <div class="col-sm-12" id="divYouTubeResults"></div>
                 </div>
                 <br />
                 <hr />
-                <div class="row">
+                <div class="row small">
                     <div class="col-sm-12" id="divGoogleSearchResults"></div>
                 </div>
             </div>
 
         </div>
+        <div id="searchcontrol"></div>
 
     </body>
 </html>

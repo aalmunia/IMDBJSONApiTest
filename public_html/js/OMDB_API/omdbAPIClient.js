@@ -233,7 +233,22 @@ OMDBAPIClient.prototype.seriesSeasonEpisodeURL = function(sSeriesName, iSeason, 
  * @param {Integer} iEpisodesMax The max number of episodes to scan for in each season
  * @returns {undefined}
  */
-OMDBAPIClient.prototype.scanSeries = function(sSeriesName, iSeasonsMax, iEpisodesMax) {    
+OMDBAPIClient.prototype.scanSeries = function(sSeriesName, iSeasonsMax, iEpisodesMax) {  
+    
+   /* $.getJSON("http://api.duckduckgo.com/?q=vikings&format=json&pretty=1", null, function(a, b, c) {
+                                    console.log(a);
+                                });                                */
+    
+    var sDuckURL = "https://api.twitter.com/1.1/search/tweets.json?q=vikings";
+    $.ajax({
+        url: sDuckURL,
+        type: 'json',
+        method: 'GET',
+        success: function(data) {
+            console.log(data);
+        }
+    });
+    
         this.iEpisodesAdded = 0;
         this.iEpisodesMissed = 0;
         this.initObject();
@@ -257,7 +272,8 @@ OMDBAPIClient.prototype.scanSeries = function(sSeriesName, iSeasonsMax, iEpisode
                             _self.oLastScannedSeries.Seasons[this.iSeason].Episodes[this.iEpisode].Title = data.Title;
                             _self.oLastScannedSeries.Seasons[this.iSeason].Episodes[this.iEpisode].imdbRating = data.imdbRating; */
                             
-                            
+                            //@TODO: Si hay vacios en el array de datos, no funciona, hay que rellenarlos con objetos tipo
+                            //Episode vacios para que el datagrid no pete
                             
                             // console.log(_self);
                             // console.log(_self.oLastScannedSeries);

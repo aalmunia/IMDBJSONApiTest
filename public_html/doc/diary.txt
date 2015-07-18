@@ -5,11 +5,11 @@ the objectives are:
 
 - Design a SPA that can use the HTML5 Local Storage API to store the data that
 the user will consume while using the application. This app is the CLIENT. As such,
-it will be able to consume several data origins being theses the following:
-    
-    - OMBD API (in raw / debug mode)
+it will be able to consume several data origins being theses the following:    
+
     - Wrapper API for OMBD API (pure jQuery)
-    - Wrapper JSON API for OMDB API (a backend server with connection to SQL)
+    - Wrapper JSON API for OMDB API (PHP-MySQL)
+    - Wrapper JSON API for OMDB API (node.js-MySQL)
 
 - The application must be usable in a desktop, tablet, and mobile environment.
 Responsiveness is a must-have.
@@ -74,3 +74,16 @@ in mind, i'm going to clean the code, and begin preparing the refactoring, wich
 i hope will take only today. Once the code is clean, i'll push the master
 branch and start a new branch, because the code works as of now, and i do not
 want to have an unusable version in my hands.
+
+DAY 3, LATER
+
+WOOOHOOO. The App is quite good as of now. I still want to implement four major
+things:
+
+- Refactor oLastScannedSeries into an Array of Series objects
+- Implement model for Series, Season and Episode 
+- Make a simple PHP backend to prove the concept
+- Make a simple node.js backend to prove the concept
+
+I didn't branch in the end. Maybe if time was not so much of constraint...
+so much to implement and so little time. :-D

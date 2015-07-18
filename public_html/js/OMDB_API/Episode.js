@@ -5,6 +5,7 @@ function Episode() {
     this.iEpisodeNumber = 0;    //@TODO: Implement, maybe...
     this.fIMDBRating = 0;
     this.iPersonalRating = -1;
+    this.bIsFavorite = false;
     this.iYear = 0;
     this.sPlot = "";
     this.iIMDBID = 0;
@@ -16,4 +17,5 @@ function Episode() {
     this.sReleaseDate = ""; //@TODO: Date format, filter
     this.sSeriesName = "";
     this.sPosterURL = "";
+    this.sPersonalReview = "";
 };

@@ -1,0 +1,4 @@
+- AngularJS refactoring where most efficient, for example, the grids:
+
+http://www.angulargrid.com/
+

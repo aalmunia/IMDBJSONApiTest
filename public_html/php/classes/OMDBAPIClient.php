@@ -57,4 +57,4 @@ class OMDBAPIClient {
 }
 
 $oAPITester = new OMDBAPIClient();
-$oAPITester->getEpisodeBySeriesName("Game of thrones",20,3);
+$oAPITester->getEpisodeBySeriesName("Game of thrones",2,3);

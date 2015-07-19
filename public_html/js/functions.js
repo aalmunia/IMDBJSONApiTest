@@ -98,6 +98,7 @@ function renderSeasonTabsAndCaptions(iSeasons) {
     sHTMLCaption += "</ul>";
     sHTMLContentPanels += "</div></div>";
     var sFinalHTML = sHTMLCaption + sHTMLContentPanels;
+    
     $("#SeriesDatagridContainer").html(sFinalHTML);
 }
 
@@ -114,6 +115,12 @@ function gridOnClickRowHandler(oEpisode) {
     if (oEpisode.aActors.length > 0) {
         $("#spanEpisodeActors").html(oEpisode.aActors.join(", "));
     }
+    
+    var isFav = (oEpisode.bIsFavorite === true) ? true : false;
+    console.log(isFav);
+    
+    $("#chkMakeFavorite").prop('checked', isFav);
+    $("#selRateEpisode").val(oEpisode.iPersonalRating);
 
     $("#txtOwnReview").val(oEpisode.sPersonalReview);
 
@@ -130,13 +137,11 @@ function gridOnClickRowHandler(oEpisode) {
         renderYouTubeResults(oYouTubeData, "divYouTubeResults");
     });
     
-    // request.execute.apply(renderYouTubeResults, "divYouTubeResults");
-    
     document.getElementById("aLinkImage").href = oEpisode.sPosterURL;
     document.getElementById("imgEpisodeImage").src = oEpisode.sPosterURL;
 }
 
-function renderGrids(iSeasons) {
+function renderGrids(iSeasons) {       
     for (var i = 0; i < iSeasons; i++) {
         var sNameGrid = "Grid_" + i;
         $("#" + sNameGrid).bootstrapTable({

@@ -277,6 +277,7 @@ OMDBAPIClient.prototype.getEpisodeBySeriesName = function (sName, iSeason, iEpis
 
 OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, sAJAXSeriesName) {
     var oEpisode = new Episode();
+    // var oEpisode = new Object();
     if (oEpisodeData.Response === "True") {
         oEpisode.sTitle = oEpisodeData.Title;
         oEpisode.fIMDBRating = oEpisodeData.imdbRating;
@@ -328,8 +329,8 @@ OMDBAPIClient.prototype.isSeasonEmpty = function (oSeason) {
 OMDBAPIClient.prototype.cleanSeasonArray = function (iSeason) {
     var iEpisodes = this.oLastScannedSeries.Seasons[iSeason].Episodes.length;
     var aNewEpisodes = [];
-    var iNewEpisodes = 0;    
-    for(var i = 0; i < iEpisodes; i++) {
+    var iNewEpisodes = 0;
+    for (var i = 0; i < iEpisodes; i++) {
         console.log(i);
         console.log(this.oLastScannedSeries.Seasons[iSeason].Episodes);
         if (this.oLastScannedSeries.Seasons[iSeason].Episodes[i].iIMDBID !== 0) {
@@ -405,12 +406,20 @@ OMDBAPIClient.prototype.saveSeriesData = function () {
     for (var i = 0; i < this.oLastScannedSeries.Seasons.length; i++) {
         var sGrid = "#Grid_" + i;
         var oDataGrid = $(sGrid).bootstrapTable('getData');
-        console.log(oDataGrid);
+        this.oLastScannedSeries.Seasons[i] = oDataGrid;
     }
 
-
+    //@TODO: El nombre de la serie está vacío tras la deserialización
+    // Al volver a serializar, se queda vacío. Resolver de alguna forma
     if (this.iDataOrigin === 0) {
-
+        if (typeof (Storage) !== "undefined") {
+            var sKey = "OMDBAPI_Series_" + this.sSeriesName.replace(" ", "_");
+            // console.log(JSON.stringify(this.oLastScannedSeries));
+            // localStorage.setItem(sKey, JSON.stringify(this.oLastScannedSeries));
+            // console.log("Serie Guardada");
+        } else {
+            throw "No hay localStorage. Cambia la configuración a otro tipo de almacenamiento si quieres guardar datos";
+        }
     } else if (this.iDataOrigin === 1) {
 
     } else if (this.iDataOrigin === 2) {
@@ -420,5 +429,32 @@ OMDBAPIClient.prototype.saveSeriesData = function () {
         console.log("Error saving Series Data");
         console.log("Value of iDataOrigin for Object OMDBAPIClient, instance: " + this.sInstanceName);
         console.log(this.iDataOrigin);
+    }
+};
+
+
+OMDBAPIClient.prototype.loadSeries = function (idSelect) {
+
+    // var iLoaded = 0;
+    if (this.iDataOrigin === 0) {
+        if (typeof (Storage) !== "undefined") {
+            for (var prop in localStorage) {
+                if (prop.indexOf("OMDBAPI_Series") !== -1) {
+                    var sOptionName = prop.replace("OMDBAPI_Series_", "").replace("_", " ");
+                    var optSeriesNew = document.createElement('option');
+                    optSeriesNew.value = prop;
+                    optSeriesNew.innerHTML = sOptionName;
+                    $("#" + idSelect).append(optSeriesNew);
+                }
+            }
+        } else {
+            throw "No hay localStorage. Cambia la configuración a otro tipo de almacenamiento si quieres guardar datos";
+        }
+    } else if (this.iDataOrigin === 1) {
+
+    } else if (this.iDataOrigin === 2) {
+
+    } else {
+
     }
 };

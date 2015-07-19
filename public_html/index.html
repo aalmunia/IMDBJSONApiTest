@@ -91,7 +91,8 @@ and open the template in the editor.
                         
                         //@TODO: This should go to OMDBAPIClient object
                         $.ajax({
-                            url: oClient.sOMDBAPIBaseURL + "?i=" + oMovie.imdbID,
+                            /* url: oClient.sOMDBAPIBaseURL + "?i=" + oMovie.imdbID, */
+                            url: gbl_aDataOriginsURL[oClient.iDataOrigin].getMovieByID(oMovie.imdbID),
                             method: 'GET',
                             type: 'json',
                             success: function (oMovieData) {                                
@@ -152,14 +153,8 @@ and open the template in the editor.
                 $("#MoviesContainer").hide();
                 hideMovieData();
                 $("#ConfigContainer").hide();
-
-                // var userLang = navigator.language || navigator.userLanguage;
-                // Hacer i18n con un fichero JSON propio
-                // Translate strings
-                /* i18n.init(function (err, t) {
-                 $("#mainNav").i18n();
-                 $("#SeriesContainer").i18n();
-                 }); */
+                
+                oClient.loadSeries("selSeriesLoaded");
 
                 // Get localStorage data for our series combo
                 //@TODO: This will eventually have to go elsewhere
@@ -233,6 +228,24 @@ and open the template in the editor.
                 });
                 $("#lnkConfigContainer").on("click", function () {
                     showConfigMainContainer();
+                });
+                
+                $("#selSeriesLoaded").on("change", function() {
+                    $("#SeriesDatagridContainer").show();
+                    var sKey = $("#selSeriesLoaded").val();
+                    var oDataSeries = JSON.parse(localStorage.getItem(sKey));
+                    var oParsedToTypesData = new Series();
+                    for(var i = 0; i < oDataSeries.Seasons.length; i++) {
+                        oParsedToTypesData.Seasons[i] = new Season(null);
+                        for(var j = 0; j < oDataSeries.Seasons[i].length; j++) {
+                            oParsedToTypesData.Seasons[i].Episodes[j] = new Episode();
+                            oParsedToTypesData.Seasons[i].Episodes[j] = oDataSeries.Seasons[i][j];
+                        }
+                    }                    
+                    oClient.oLastScannedSeries = oParsedToTypesData;                    
+                    var iSeasons = oClient.oLastScannedSeries.Seasons.length;                    
+                    renderSeasonTabsAndCaptions(iSeasons);
+                    renderGrids(iSeasons);                    
                 });
             });
 
@@ -401,13 +414,13 @@ and open the template in the editor.
 
                 <!-- Container for individual movie data -->
                 <div class="row small" id="divContainerMoviesMovieData">                    
-                    <div class="col-sm-6">
+                    <div class="col-sm-6">                        
+                        <b>Trama: </b><span style="text-align: left;" id="spanMoviesMovieDataPlot"></span><br />                        
+                    </div>
+                    <div class="col-sm-6" style="text-align: left;">
                         <b>Director: </b><span id="spanMoviesMovieDataDirector"></span><br />
                         <b>Escritor: </b><span id="spanMoviesMovieDataWriter"></span><br />
-                        <b>Trama: </b><span id="spanMoviesMovieDataPlot"></span><br />
-                        <b>Actores: </b><span id="spanMoviesMovieDataActors"></span>
-                    </div>
-                    <div class="col-sm-6">
+                        <b>Actores: </b><span id="spanMoviesMovieDataActors"></span><br />
                         <b>Premios: </b><span id="spanMoviesMovieDataAwards"></span><br />
                         <b>Idioma: </b><span id="spanMoviesMovieDataLanguage"></span><br />
                         <b>Género: </b><span id="spanMoviesMovieDataGenre"></span><br />
@@ -419,13 +432,13 @@ and open the template in the editor.
 
                 <!-- Own review -->
                 <div class="row small" id="divContainerMoviesMovieOwnReview">
-                    <div class="col-sm-3" style="vertical-align: central;">
+                    <div class="col-sm-3 vertical-align">
                         ¡ Escrite tu propia crítica !
                     </div>
                     <div class="col-sm-6">
-                        <textarea id="txtMovieOwnReview" cols="30" rows="4" placeholder="¡ Escribe tu propia crítica !"></textarea>
+                        <textarea id="txtMovieOwnReview" cols="50" rows="5" placeholder="¡ Escribe tu propia crítica !"></textarea>
                     </div>
-                    <div class="col-sm-3" style="vertical-align: central;">
+                    <div class="col-sm-3">
                         <button class="btn-primary" id="btnSaveMovieOwnReview">Guardar</button>
                     </div>
                 </div>

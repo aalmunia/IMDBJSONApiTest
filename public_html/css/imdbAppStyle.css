@@ -8,8 +8,11 @@ and open the template in the editor.
     Author     : AAlmunia
 */
 
+/* @TODO: Media queries for mobile devices */
 body {
   padding-top: 50px;
+  font-family: Verdana;
+  font-size: 11pt;
 }
 .starter-template {
   padding: 40px 15px;
@@ -24,4 +27,21 @@ body {
 
 .table-full-width {
     width: 100%;
+}
+
+#divOverlay {
+    font-size: 28pt;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 11000;
+    background: white;
+    opacity: 1;
+    display: block;
+}
+
+#divOverlayProgress {    
+    font-size: 28pt;
 }

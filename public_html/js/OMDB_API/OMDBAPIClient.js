@@ -142,6 +142,9 @@ OMDBAPIClient.prototype.getMovieByID = function (iIMDBID) {
     var oAjax = {
         sURL: gbl_aDataOriginsURL[this.iDataOrigin].getMovieByID(iIMDBID),
         funcSuccessHandler: function (oData) {
+            /* if(oData.Response === undefined) {
+                oData = JSON.parse(oData);
+            } */
             if (oData.Response === "False") {
                 $.event.trigger("OMDBAPIClient::GetMovieByID::KO");
             } else {
@@ -186,7 +189,10 @@ OMDBAPIClient.prototype.searchMovies = function (sSearch) {
     var oAjax = {
         /* sURL: this.sOMDBAPIBaseURL + "?s=" + sSearch + "&type=movie&plot=full", */
         sURL: gbl_aDataOriginsURL[this.iDataOrigin].searchMovies(sSearch),
-        funcSuccessHandler: function (oData) {
+        funcSuccessHandler: function (oData) {            
+            if(oData.Search === undefined) {
+                oData = JSON.parse(oData);
+            }
             if (oData.Response === "False") {
                 $.event.trigger("OMDBAPIClient::SearchMovies::KO");
             } else {
@@ -300,6 +306,13 @@ OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, 
 
     this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisode;
     this.iEpisodesAdded++;
+    
+    console.log("Episodes Added (%): " + Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100));
+    console.log(this.iEpisodesAdded);
+    // $("#spanOverlayProgress").show();
+    $("#divOverlayProgress").html(Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100) + " %");
+    console.log($("#divOverlayProgress"));
+    console.log($("#divOverlayProgress").html);
 
     if (this.iEpisodesMissed === this.iMaxEpisodesScanned) {
         this.oLastScannedSeries.sName = sAJAXSeriesName;
@@ -330,9 +343,7 @@ OMDBAPIClient.prototype.cleanSeasonArray = function (iSeason) {
     var iEpisodes = this.oLastScannedSeries.Seasons[iSeason].Episodes.length;
     var aNewEpisodes = [];
     var iNewEpisodes = 0;
-    for (var i = 0; i < iEpisodes; i++) {
-        console.log(i);
-        console.log(this.oLastScannedSeries.Seasons[iSeason].Episodes);
+    for (var i = 0; i < iEpisodes; i++) {        
         if (this.oLastScannedSeries.Seasons[iSeason].Episodes[i].iIMDBID !== 0) {
             // this.oLastScannedSeries.Seasons[iSeason].Episodes.splice(i, 1);
             aNewEpisodes[iNewEpisodes] = this.oLastScannedSeries.Seasons[iSeason].Episodes[i];
@@ -370,7 +381,7 @@ OMDBAPIClient.prototype.cleanSeriesArray = function () {
  * @param {Integer} iEpisodesMax The max number of episodes to scan for in each season
  * @returns {undefined}
  */
-OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisodesMax) {
+OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisodesMax) {    
     this.iEpisodesAdded = 0;
     this.iEpisodesMissed = 0;
     this.initObject(iSeasonsMax, iEpisodesMax);
@@ -379,7 +390,7 @@ OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisod
     this.sSeriesName = sSeriesName;
     this.oLastScannedSeries.sName = sSeriesName;
     for (var i = 0; i < iSeasonsMax; i++) {
-        for (var j = 0; j < iEpisodesMax; j++) {
+        for (var j = 0; j < iEpisodesMax; j++) {            
             $.ajax({
                 url: gbl_aDataOriginsURL[this.iDataOrigin].scanSeriesIMDB(sSeriesName, i, j),
                 type: 'json',

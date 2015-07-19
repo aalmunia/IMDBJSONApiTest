@@ -46,8 +46,6 @@ and open the template in the editor.
             }
 
             var oClient;
-            var aSeriesLoaded = [];
-            var iSeriesLoaded = 0;
 
             function initYouTube() {
                 gapi.client.setApiKey('AIzaSyCbX1LUET7Ku1De6SZZnJff6Xm-AvI2gCk');
@@ -64,13 +62,47 @@ and open the template in the editor.
                 console.log("YouTube API loaded");
             }
 
+            function initiateSeriesScan(sSeriesName, iRow) {
+                $("#divOverlay").show();
+                var iSeasons = $("#txtSeriesGridSeasons_" + iRow).val();
+                var iEpisodes = $("#txtSeriesGridEpisodes_" + iRow).val();                
+                oClient.initObject(iSeasons, iEpisodes);
+                oClient.scanSeries(sSeriesName, iSeasons, iEpisodes);                
+            }
+
+            $(document).bind("OMDBAPIClient::SearchSeries::OK", function (oEvent, oData) {
+                $("#divGridSearchSeries").bootstrapTable('destroy');
+                $("#divGridSearchSeries").bootstrapTable({
+                    sortable: true,
+                    columns: [
+                        {field: 'Title', title: 'Título', sortable: true},
+                        {field: 'imdbID', title: 'ID IMDB', sortable: true},
+                        {field: 'Year', title: 'Años'},
+                        {field: '', title: 'Temporadas', formatter: function (a, b, c) {
+                                return "<input type='text' id='txtSeriesGridSeasons_" + c + "' />";
+                            }},
+                        {field: '', Title: 'Episodios', formatter: function (a, b, c) {
+                                return "<input type='text' id='txtSeriesGridEpisodes_" + c + "' />";
+                            }},
+                        {field: '', Title: 'Escanear', formatter: function (a, b, c) {
+                                var sSeriesName = b.Title;                                
+                                var sHTML = "<button class='btn-primary' onclick=\"initiateSeriesScan('" + sSeriesName + "', " + c + ")\">Escanear</button>";
+                                return sHTML;
+                            }}
+
+                    ],
+                    data: oData.Search
+                });
+            });
+
             $(document).bind("OMDBAPIClient::ScanSeries::OK", function (oEvent) {
-                console.log("Series scanned, showing...");                
+                console.log("Series scanned, showing...");
                 var iSeasons = oClient.oLastScannedSeries.Seasons.length;
                 var sSeriesTitle = oClient.oLastScannedSeries.Seasons[0].Episodes[0].sSeriesName.capitalize();
                 $("#divSeriesTitle").html(sSeriesTitle);
                 renderSeasonTabsAndCaptions(iSeasons);
                 renderGrids(iSeasons);
+                $("#divOverlay").hide();
                 $("#divSeriesGridContainer").show();
             });
 
@@ -89,9 +121,11 @@ and open the template in the editor.
                     columns: [
                         {field: 'imdbID', width: '20%', title: 'ID', sortable: true},
                         {field: 'Title', width: '40%', title: 'Título', sortable: true},
-                        {field: 'Year', width: '20%', title: 'Año', sortable: true}                        
+                        {field: 'Year', width: '20%', title: 'Año', sortable: true}
                     ],
                     onClickRow: function (oMovie) {
+                        console.log("oMovie clickRow Grid Movies");
+                        console.log(oMovie);
 
                         //@TODO: This should go to OMDBAPIClient object
                         $.ajax({
@@ -100,7 +134,12 @@ and open the template in the editor.
                             method: 'GET',
                             type: 'json',
                             success: function (oMovieData) {
+                                // console.log("Callback success ")
                                 // console.log(oMovieData);
+
+                                if (oMovieData.Response === undefined) {
+                                    oMovieData = JSON.parse(oMovieData);
+                                }
 
                                 var sMovieName = oMovieData.Title;
                                 $("#spanMoviesMovieDataPlot").html(oMovieData.Plot);
@@ -141,9 +180,11 @@ and open the template in the editor.
 
             // Start bootstrapping of app
             $(document).ready(function () {
-                
+
                 i18nTranslate();
                 
+                $("#divOverlay").hide();
+
                 showMainContainer(0);
                 // Instance the API handler
                 oClient = new OMDBAPIClient();
@@ -162,7 +203,7 @@ and open the template in the editor.
                 hideMovieData();
                 $("#ConfigContainer").hide();
                 oClient.loadSeries("selSeriesLoaded");
-                
+
 
                 /**************************************************************/
                 /***********  HTML EVENT CONTROL HANDLERS *********************/
@@ -170,6 +211,7 @@ and open the template in the editor.
                 // This initiates an AJAX Request (several, in fact). It fires the
                 // event OMDBAPIClient::ScanSeriesFinished when it finishes...
                 $("#btnGetSeries").click(function () {
+                    $("#divOverlay").show();
                     var iSeasonsInput = ($("#txtSeriesMaxSeasons").val() !== "") ? $("#txtSeriesMaxSeasons").val() : oClient.iMaxSeasons;
                     var iEpisodesInput = ($("#txtSeriesMaxEpisodes").val() !== "") ? $("#txtSeriesMaxEpisodes").val() : oClient.iMaxEpisodes;
                     hideEpisodeData();
@@ -207,20 +249,26 @@ and open the template in the editor.
                     $("#" + sGridSeason).bootstrapTable('updateRow', {index: oSelectedEpisode.iEpisodeInSeason, row: oSelectedEpisode});
                 });
 
+                $("#btnSearchSeries").on("click", function () {
+                    var sSearchTerm = $("#txtSearchSeries").val();
+                    oClient.searchSeries(sSearchTerm);
+                });
+
                 $("#btnSearchMovies").on("click", function () {
                     var sSearchTerm = $("#txtSearchMovies").val();
                     oClient.searchMovies(sSearchTerm);
                 });
-        
-                $(".MainContainerLink").on("click", function(a, b) {                    
-                    var sLink = a.currentTarget.id;                    
-                    var iContainer = sLink[(sLink.length - 1)];                    
+
+
+                $(".MainContainerLink").on("click", function (a, b) {
+                    var sLink = a.currentTarget.id;
+                    var iContainer = sLink[(sLink.length - 1)];
                     showMainContainer(iContainer);
                 });
 
-                $("#selSeriesLoaded").on("change", function () {                    
+                $("#selSeriesLoaded").on("change", function () {
                     $("#SeriesDatagridContainer").html("");
-                    
+
                     var sKey = $("#selSeriesLoaded").val();
                     // var oSeries = new Series();
                     var oDataSeries = JSON.parse(localStorage.getItem(sKey));
@@ -229,8 +277,8 @@ and open the template in the editor.
                     console.log(iSeasons);
                     // oDataSeries.__proto__ = oSeries.prototype;
                     /* console.log(oDataSeries);
-                    $("#divSeriesGridContainer").show(); */
-                    
+                     $("#divSeriesGridContainer").show(); */
+
                     var oParsedToTypesData = new Series();
                     oParsedToTypesData.sName = oDataSeries.sName;
                     for (var i = 0; i < iSeasons; i++) {
@@ -240,11 +288,11 @@ and open the template in the editor.
                             oParsedToTypesData.Seasons[i].Episodes[j] = oDataSeries.Seasons[i][j];
                         }
                     }
-                    
+
                     oClient.oLastScannedSeries = {};
-                    oClient.oLastScannedSeries = oParsedToTypesData;                    
-                    
-                    iSeasons = oClient.oLastScannedSeries.Seasons.length;                    
+                    oClient.oLastScannedSeries = oParsedToTypesData;
+
+                    iSeasons = oClient.oLastScannedSeries.Seasons.length;
                     renderSeasonTabsAndCaptions(iSeasons);
                     renderGrids(iSeasons);
                     $("#divSeriesGridContainer").show();
@@ -298,11 +346,41 @@ and open the template in the editor.
             </div>
         </nav>
         <!-- END NavBar -->
-
+        
+        
+        <div id="divOverlay">
+            <div class="container">
+                <div class="starter-template">
+                    <div class="row panel panel-primary">
+                        <div class="panel-heading">Progreso de tarea</div>
+                        <div class="panel-body">
+                            <div class="col-sm-4"></div>
+                            <div class="col-sm-4"><div id="divOverlayProgress"></div></div>
+                            <div class="col-sm-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- START MainContainer_0: Series Data Container -->
         <div class="container" id="MainContainer_0">
             <div class="starter-template">
+
+                <div class="row panel panel-primary">
+                    <div class="panel-heading">Buscar series</div>
+                    <div class="panel-body">
+                        <div class="col-sm-6"><input type="text" id="txtSearchSeries" placeholder="Serie" /></div>
+                        <div class="col-sm-6"><button id="btnSearchSeries" class="btn-primary">Buscar</button></div>
+                    </div>
+                </div>
+
+                <div class="row panel panel-primary">
+                    <div class="panel-heading">Resultado búsqueda de series</div>
+                    <div class="panel-body">
+                        <div id="divGridSearchSeries"></div>
+                    </div>
+                </div>
 
                 <!-- Instructions for scanning -->
                 <div class="row small panel panel-primary">
@@ -334,7 +412,7 @@ and open the template in the editor.
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Space for Series Datagrids with episodes -->
                 <div class="row small panel panel-primary" id="divSeriesGridContainer">
                     <div class="panel-heading"><langtranslate id="LangScannedSeries"></langtranslate><b><span id="divSeriesTitle"></span></b></div>
@@ -344,7 +422,7 @@ and open the template in the editor.
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Space for data for episode (Plot, Actors...) -->
                 <div class="row small panel panel-primary" id="divSeriesDataIMDB">
                     <div class="panel-heading"><langtranslate id="LangEpisodeData"></langtranslate></div>
@@ -403,8 +481,8 @@ and open the template in the editor.
                 <div class="row small panel panel-success">
                     <div class="panel-heading">Búsqueda de películas</div>
                     <div class="panel-body">                    
-                    <div class="col-sm-6"><input type="text" id="txtSearchMovies" placeholder="Película" /></div>
-                    <div class="col-sm-6"><button class="btn-primary" id="btnSearchMovies" />Buscar</div>
+                        <div class="col-sm-6"><input type="text" id="txtSearchMovies" placeholder="Película" /></div>
+                        <div class="col-sm-6"><button class="btn-primary" id="btnSearchMovies" />Buscar</div>
                     </div>
                 </div>
 
@@ -417,25 +495,25 @@ and open the template in the editor.
                             <div id="GridMoviesSearchResults" class="center-block"></div>
                         </div>
                         <div class="col-sm-3"></div>
-                </div>
+                    </div>
                 </div>
 
                 <!-- Container for individual movie data -->
                 <div class="row small panel panel-success" id="divContainerMoviesMovieData">
                     <div class="panel-heading">Datos de la película</div>
                     <div class="panel-body">
-                    <div class="col-sm-6">                        
-                        <b>Trama: </b><span style="text-align: left;" id="spanMoviesMovieDataPlot"></span><br /><br />                        
-                    </div>
-                    <div class="col-sm-6" style="text-align: left;">
-                        <b>Director: </b><span id="spanMoviesMovieDataDirector"></span><br />
-                        <b>Escritor: </b><span id="spanMoviesMovieDataWriter"></span><br />
-                        <b>Actores: </b><span id="spanMoviesMovieDataActors"></span><br />
-                        <b>Premios: </b><span id="spanMoviesMovieDataAwards"></span><br />
-                        <b>Idioma: </b><span id="spanMoviesMovieDataLanguage"></span><br />
-                        <b>Género: </b><span id="spanMoviesMovieDataGenre"></span><br />
-                        <b>Duración: </b><span id="spanMoviesMovieDataRuntime"></span>
-                    </div>
+                        <div class="col-sm-6">                        
+                            <b>Trama: </b><span style="text-align: left;" id="spanMoviesMovieDataPlot"></span><br /><br />                        
+                        </div>
+                        <div class="col-sm-6" style="text-align: left;">
+                            <b>Director: </b><span id="spanMoviesMovieDataDirector"></span><br />
+                            <b>Escritor: </b><span id="spanMoviesMovieDataWriter"></span><br />
+                            <b>Actores: </b><span id="spanMoviesMovieDataActors"></span><br />
+                            <b>Premios: </b><span id="spanMoviesMovieDataAwards"></span><br />
+                            <b>Idioma: </b><span id="spanMoviesMovieDataLanguage"></span><br />
+                            <b>Género: </b><span id="spanMoviesMovieDataGenre"></span><br />
+                            <b>Duración: </b><span id="spanMoviesMovieDataRuntime"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -443,13 +521,13 @@ and open the template in the editor.
                 <div class="row small panel panel-success" id="divContainerMoviesMovieOwnReview">
                     <div class="panel-heading">Escribe una crítica propia</div>
                     <div class="panel-body">
-                    <div class="col-sm-12">
-                        <textarea id="txtMovieOwnReview" cols="50" rows="5" placeholder="¡ Escribe tu propia crítica !"></textarea><br />
-                        <button class="btn-primary" id="btnSaveMovieOwnReview">Guardar</button>                    
-                    </div>
+                        <div class="col-sm-12">
+                            <textarea id="txtMovieOwnReview" cols="50" rows="5" placeholder="¡ Escribe tu propia crítica !"></textarea><br />
+                            <button class="btn-primary" id="btnSaveMovieOwnReview">Guardar</button>                    
+                        </div>
                     </div>
                 </div>
-                
+
                 <!-- YouTube Results Container Div -->
                 <div class="panel panel-success row">
                     <div class="panel-heading">Resultados de YouTube</div>
@@ -457,7 +535,7 @@ and open the template in the editor.
                         <div class="col-sm-12" id="divContainerMoviesMovieYouTubeResults"></div>                        
                     </div>
                 </div>
-                
+
             </div>                        
         </div>
         <!-- END MainContainer_1: Movies Container -->

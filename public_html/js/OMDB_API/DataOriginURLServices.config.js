@@ -31,16 +31,16 @@ var gbl_aDataOriginsURL = [
     // gbl_aAppConfig.sPHPSecurityToken - Cuando implementes el handshake
     {
         searchSeries: function(sSeriesTitle) {
-            return "/php/app.php/searchSeries/" + sSeriesTitle + "/plot/full/";
+            return document.location + "/php/index.php/searchSeries/" + sSeriesTitle;
         },
         getMovieByID: function(iIMDBID) {
-            return "/php/app.php/getMovieByID/" + iIMDBID + "/plot/full/";
+            return document.location + "/php/index.php/getMovieByID/" + iIMDBID;
         },
         getSeriesByID: function(iIMDBID) {
-            return "/php/app.php/getSeriesByID/" + iIMDBID + "/plot/full/";
+            return document.location + "/php/index.php/getSeriesByID/" + iIMDBID;
         },
         searchMovies: function(sSearch) {
-            
+            return document.location + "/php/index.php/searchMovies/" + sSearch;
         }
     },
     // node.js + MySQL

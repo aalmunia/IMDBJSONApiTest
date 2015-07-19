@@ -3,10 +3,6 @@ function showMainContainer(iContainer) {
         var sIDDiv = "MainContainer_" + i;        
         var sIDLink = "MainContainerLI_" + i;
         $("#" + sIDLink).removeClass("active");
-        
-        console.log(i);
-        console.log(iContainer);
-        
         if(parseInt(iContainer) === i) {
             $("#" + sIDDiv).show();
             $("#" + sIDLink).addClass("active");
@@ -163,17 +159,17 @@ function renderGrids(iSeasons) {
             maintainSelected: true,
             classes: 'table table-hover table-condensed',            
             columns: [
-                {field: 'iEpisodeInSeason', title: 'Episodio', formatter: function (value) {
+                {field: 'iEpisodeInSeason', width: '8%', title: 'Ep', formatter: function (value) {
                         return value + 1;
                     }, sortable: true},
-                {field: 'sTitle', title: 'Título', sortable: true},
-                {field: 'fIMDBRating', title: 'Valoración IMDB', sortable: true},
-                {field: 'fRuntime', title: 'Duración'},
-                {field: 'iYear', title: 'Año', sortable: true},
-                {field: 'iPersonalRating', title: 'Puntuación', sortable: true},
-                {field: 'iIMDBVotes', title: 'Votos IMDB', sortable: true},
-                {field: 'sReleaseDate', title: 'Estrenado'},
-                {field: 'bIsFavorite', title: '¿Favorito?', sortable: true},
+                {field: 'sTitle', width: '36%', title: 'Título', sortable: true},
+                {field: 'fIMDBRating', width: '8%', title: 'Rating', sortable: true},
+                {field: 'fRuntime', title: 'Duración', width: '8%'},
+                {field: 'iYear', width: '8%', title: 'Año', sortable: true},
+                {field: 'iPersonalRating', width: '8%', title: 'Puntuación', sortable: true},
+                {field: 'iIMDBVotes', width: '8%', title: 'Votos IMDB', sortable: true},
+                {field: 'sReleaseDate', width: '8%', title: 'Estrenado'},
+                {field: 'bIsFavorite', width: '8%', title: '¿Favorito?', sortable: true},
                 {field: 'sPersonalReview', visible: false}
             ],
             data: oClient.oLastScannedSeries.Seasons[i].Episodes,

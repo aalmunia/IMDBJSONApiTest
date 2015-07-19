@@ -1,4 +1,4 @@
 function Series() {
-    this.Name = "";
+    this.sName = "";
     this.Seasons = [];
 };

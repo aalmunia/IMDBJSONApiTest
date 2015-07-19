@@ -8,7 +8,7 @@ and open the template in the editor.
     <head>
         <meta charset="UTF-8">
         <title>EIC Test - OMBD JSON API</title>
-        
+
         <!-- Application configuration values -->
         <script src="js/config.js"></script>
 
@@ -35,6 +35,7 @@ and open the template in the editor.
         <script src="js/OMDB_API/OMDBAPIClient.js"></script>    <!-- The IMDB Client -->
 
         <!-- Miscellaneous functions for application -->
+        <script src="js/AppLangStrings.js"></script>
         <script src="js/eventBindings.js"></script>
         <script src="js/functions.js"></script>
 
@@ -62,14 +63,15 @@ and open the template in the editor.
             function handleYouTubeAPILoaded() {
                 console.log("YouTube API loaded");
             }
-            
+
             $(document).bind("OMDBAPIClient::ScanSeries::OK", function (oEvent) {
-                console.log("Series scanned, showing...");
+                console.log("Series scanned, showing...");                
                 var iSeasons = oClient.oLastScannedSeries.Seasons.length;
-                var sSeriesTitle = "<h2>" + oClient.oLastScannedSeries.Seasons[0].Episodes[0].sSeriesName.capitalize() + "</h2>";
+                var sSeriesTitle = oClient.oLastScannedSeries.Seasons[0].Episodes[0].sSeriesName.capitalize();
                 $("#divSeriesTitle").html(sSeriesTitle);
                 renderSeasonTabsAndCaptions(iSeasons);
                 renderGrids(iSeasons);
+                $("#divSeriesGridContainer").show();
             });
 
             $(document).bind("OMDBAPIClient::ScanSeries::KO", function () {
@@ -80,55 +82,56 @@ and open the template in the editor.
             $(document).bind("OMDBAPIClient::SearchMovies::OK", function (oEvent, oMovies) {
                 $("#GridMoviesSearchResults").bootstrapTable('destroy');
                 $("#GridMoviesSearchResults").bootstrapTable({
+                    width: '100%',
                     sortable: true,
-                    classes: 'table table-hover table-condensed',
+                    striped: true,
+                    /* classes: 'table table-hover table-condensed table-responsive table-full-width', */
                     columns: [
-                        {field: 'imdbID', title: 'ID', sortable: true},
-                        {field: 'Title', title: 'Título', sortable: true},
-                        {field: 'Year', title: 'Año', sortable: true}
+                        {field: 'imdbID', width: '20%', title: 'ID', sortable: true},
+                        {field: 'Title', width: '40%', title: 'Título', sortable: true},
+                        {field: 'Year', width: '20%', title: 'Año', sortable: true}                        
                     ],
                     onClickRow: function (oMovie) {
-                        
+
                         //@TODO: This should go to OMDBAPIClient object
                         $.ajax({
                             /* url: oClient.sOMDBAPIBaseURL + "?i=" + oMovie.imdbID, */
                             url: gbl_aDataOriginsURL[oClient.iDataOrigin].getMovieByID(oMovie.imdbID),
                             method: 'GET',
                             type: 'json',
-                            success: function (oMovieData) {                                
-                                console.log(oMovieData);
-                                
+                            success: function (oMovieData) {
+                                // console.log(oMovieData);
+
                                 var sMovieName = oMovieData.Title;
                                 $("#spanMoviesMovieDataPlot").html(oMovieData.Plot);
                                 $("#spanMoviesMovieDataActors").html(oMovieData.Actors);
                                 $("#spanMoviesMovieDataDirector").html(oMovieData.Director);
                                 $("#spanMoviesMovieDataWriter").html(oMovieData.Writer);
-                                $("#spanMoviesMovieDataAwards").html(oMovieData.Awards);                                
+                                $("#spanMoviesMovieDataAwards").html(oMovieData.Awards);
                                 $("#spanMoviesMovieDataLanguage").html(oMovieData.Language);
                                 $("#spanMoviesMovieDataGenre").html(oMovieData.Genre);
                                 $("#spanMoviesMovieDataRuntime").html(oMovieData.Runtime);
-                                
+
                                 var sSearchYouTube = sMovieName + " " + oMovieData.Year;
-                                
+
                                 // We make a YouTube Request for data relevant to the movie
                                 var YouTubeRequest = gapi.client.youtube.search.list({
                                     q: sSearchYouTube,
                                     part: 'snippet',
-                                    maxResults: 6
+                                    maxResults: 4
                                 });
-                                
-                                YouTubeRequest.execute(function(oYouTubeResults) {                                    
-                                    renderYouTubeResults(oYouTubeResults, "divContainerMoviesMovieYouTubeResults");
+
+                                YouTubeRequest.execute(function (oYouTubeResults) {
+                                    renderYouTubeResults(oYouTubeResults, "divContainerMoviesMovieYouTubeResults", sSearchYouTube);
                                 });
+
+                                showMovieData();
                             }
                         });
-
-
-
                     },
                     data: oMovies.Search
                 });
-                showMovieData();
+                showMovieSearchData();
             });
 
             $(document).bind("OMDBAPIClient::SearchMovies::KO", function () {
@@ -138,7 +141,10 @@ and open the template in the editor.
 
             // Start bootstrapping of app
             $(document).ready(function () {
-
+                
+                i18nTranslate();
+                
+                showMainContainer(0);
                 // Instance the API handler
                 oClient = new OMDBAPIClient();
                 // oClient.useSyncAjaxMode = true;
@@ -146,31 +152,17 @@ and open the template in the editor.
 
                 // Hide relevant divs, not used yet, we don't have any 
                 // selected Episode in the app load
+                $("#divSeriesGridContainer").hide();
                 $("#divSeriesDataIMDB").hide();
                 $("#divEpisodeOwnReview").hide();
+                $("#divContainerYouTubeResults").hide();
 
                 // We hide the main containers for movies and configuration
                 $("#MoviesContainer").hide();
                 hideMovieData();
                 $("#ConfigContainer").hide();
-                
                 oClient.loadSeries("selSeriesLoaded");
-
-                // Get localStorage data for our series combo
-                //@TODO: This will eventually have to go elsewhere
-                /* if (typeof (Storage) !== "undefined") {
-                    for (var prop in localStorage) {
-                        if (prop.indexOf("OMDBAPI_Series") !== -1) {
-                            var sOptionName = prop.replace("OMDBAPI_Series_", "").replace("_", " ");
-                            var optSeriesNew = document.createElement('option');
-                            optSeriesNew.value = prop;
-                            optSeriesNew.innerHTML = sOptionName;
-                            $("#selSeriesLoaded").append(optSeriesNew);
-                            aSeriesLoaded[iSeriesLoaded] = prop;
-                            iSeriesLoaded++;
-                        }
-                    }
-                } */
+                
 
                 /**************************************************************/
                 /***********  HTML EVENT CONTROL HANDLERS *********************/
@@ -219,33 +211,43 @@ and open the template in the editor.
                     var sSearchTerm = $("#txtSearchMovies").val();
                     oClient.searchMovies(sSearchTerm);
                 });
+        
+                $(".MainContainerLink").on("click", function(a, b) {                    
+                    var sLink = a.currentTarget.id;                    
+                    var iContainer = sLink[(sLink.length - 1)];                    
+                    showMainContainer(iContainer);
+                });
 
-                $("#lnkSeriesContainer").on("click", function () {
-                    showSeriesMainContainer();
-                });
-                $("#lnkMoviesContainer").on("click", function () {
-                    showMoviesMainContainer();
-                });
-                $("#lnkConfigContainer").on("click", function () {
-                    showConfigMainContainer();
-                });
-                
-                $("#selSeriesLoaded").on("change", function() {
-                    $("#SeriesDatagridContainer").show();
+                $("#selSeriesLoaded").on("change", function () {                    
+                    $("#SeriesDatagridContainer").html("");
+                    
                     var sKey = $("#selSeriesLoaded").val();
+                    // var oSeries = new Series();
                     var oDataSeries = JSON.parse(localStorage.getItem(sKey));
+                    console.log(oDataSeries);
+                    var iSeasons = oDataSeries.Seasons.length;
+                    console.log(iSeasons);
+                    // oDataSeries.__proto__ = oSeries.prototype;
+                    /* console.log(oDataSeries);
+                    $("#divSeriesGridContainer").show(); */
+                    
                     var oParsedToTypesData = new Series();
-                    for(var i = 0; i < oDataSeries.Seasons.length; i++) {
-                        oParsedToTypesData.Seasons[i] = new Season(null);
-                        for(var j = 0; j < oDataSeries.Seasons[i].length; j++) {
+                    oParsedToTypesData.sName = oDataSeries.sName;
+                    for (var i = 0; i < iSeasons; i++) {
+                        oParsedToTypesData.Seasons[i] = new Season();
+                        for (var j = 0; j < oDataSeries.Seasons[i].length; j++) {
                             oParsedToTypesData.Seasons[i].Episodes[j] = new Episode();
                             oParsedToTypesData.Seasons[i].Episodes[j] = oDataSeries.Seasons[i][j];
                         }
-                    }                    
+                    }
+                    
+                    oClient.oLastScannedSeries = {};
                     oClient.oLastScannedSeries = oParsedToTypesData;                    
-                    var iSeasons = oClient.oLastScannedSeries.Seasons.length;                    
+                    
+                    iSeasons = oClient.oLastScannedSeries.Seasons.length;                    
                     renderSeasonTabsAndCaptions(iSeasons);
-                    renderGrids(iSeasons);                    
+                    renderGrids(iSeasons);
+                    $("#divSeriesGridContainer").show();
                 });
             });
 
@@ -265,157 +267,165 @@ and open the template in the editor.
                 <div class="navbar-header">
                     <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navigationbar">
                         <span class="sr-only">
-                            <span class="i18nTranslate" id="LangNavToggle">Navegación</span>
+                            <langtranslate id="LangNavToggle"></langtranslate>
                         </span>
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <a class="navbar-brand" href="#">
-                       ECI Test
-                    </a>
+                    <!-- <a class="navbar-brand" href="#">
+                        ECI Test
+                    </a> -->
                 </div>
                 <div class="collapse navbar-collapse" id="navigationbar">
-                    <ul class="nav navbar-nav">
-                        <li class="active">
-                            <a id="lnkSeriesContainer" href="#">
-                                <span class="i18nTranslate" id="LangSeries">Series</span>
-                            </a>
+                    <ul class="nav navbar-nav navbar-left">                        
+                        <li class="active" id="MainContainerLI_0">
+                            <a class="MainContainerLink" id="MainContainerLink_0"><langtranslate id="LangSeries"></langtranslate></a>
                         </li>
-                        <li><a id="lnkMoviesContainer" href="#">Películas</a></li>
-                        <li><a id="lnkConfigContainer" href="#">Configuración</a></li>                        
+                        <li id="MainContainerLI_1"><a class="MainContainerLink" id="MainContainerLink_1"><langtranslate id="LangMovies"></langtranslate></a></li>
+                        <li id="MainContainerLI_2"><a class="MainContainerLink" id="MainContainerLink_2"><langtranslate id="LangConfig"></langtranslate></a></li>
+                    </ul>                    
+                    <ul class="nav navbar-nav navbar-right">
+                        <li>
+                            <img src="img/es.gif" />
+                        </li>
+                        <li>&nbsp;</li>
+                        <li>
+                            <img src="img/en.jpg" />
+                        </li>
                     </ul>
                 </div>
             </div>
         </nav>
         <!-- END NavBar -->
 
-        
+
         <!-- START MainContainer_0: Series Data Container -->
-        <div class="container" id="SeriesContainer">
+        <div class="container" id="MainContainer_0">
             <div class="starter-template">
 
                 <!-- Instructions for scanning -->
-                <div class="row small">
-                    <div class="col-sm-12" style="text-align: left;">
-                        Escanea una serie. Inserta el nombre de la serie a escanear, la cantidad de temporadas
-                        que quieres escanear, y cuantos episodios por temporada. Si exceden el tamaño de la serie,
-                        no hay problema. Si la serie es muy grande (Los Simpson, +20 Temporadas, +15 Capítulos),
-                        tardará un rato bien largo.
+                <div class="row small panel panel-primary">
+                    <div class="panel-heading">Instrucciones de escaneo</div>
+                    <div class="panel-body">
+                        <div class="col-sm-12" style="text-align: left;">
+                            Escanea una serie. Inserta el nombre de la serie a escanear, la cantidad de temporadas
+                            que quieres escanear, y cuantos episodios por temporada. Si exceden el tamaño de la serie,
+                            no hay problema. Si la serie es muy grande (Los Simpson, +20 Temporadas, +15 Capítulos),
+                            tardará un rato bien largo.
+                        </div>
+                    </div>
+                </div>                
+
+                <!-- Scannig controls -->                
+                <div class="row small panel panel-primary" id="divSeriesControlsScanner">
+                    <div class="panel-heading">Escanear series</div>
+                    <div class="panel-body">
+                        <div class="col-sm-1"><button class="btn-primary" id="btnGetSeries" data-i18n="controls.btnGetSeries"><langtranslate id="LangScan"></langtranslate></button></div>                
+                        <div class="col-sm-1"><button class="btn-primary" id="btnSaveSeries" data-i18n="controls.btnSaveSeries"><langtranslate id="LangSave"></langtranslate></button></div>
+                        <div class="col-sm-2"><input type="text" placeholder="Series" id="txtSeriesScanName" /></div>
+                        <div class="col-sm-2"><input type="text" placeholder="Temporadas" id="txtSeriesMaxSeasons" /></div>
+                        <div class="col-sm-2"><input type="text" placeholder="Episodios" id="txtSeriesMaxEpisodes" /></div>
+                        <div class="col-sm-2">
+                            <select id="selSeriesLoaded"></select>
+                        </div>
+                        <div class="col-sm-2">
+                            <button class="btn-primary" id="btnClearSeries"><langtranslate id="LangDelete"></langtranslate></button>
+                        </div>
                     </div>
                 </div>
-                <br />
-
-                <!-- Scannig controls -->
-                <div class="row small" id="divSeriesControlsScanner">                    
-                    <div class="col-sm-1"><button class="btn-primary" id="btnGetSeries" data-i18n="controls.btnGetSeries">Escanea</button></div>                
-                    <div class="col-sm-1"><button class="btn-primary" id="btnSaveSeries" data-i18n="controls.btnSaveSeries">Guardar</button></div>
-                    <div class="col-sm-2"><input type="text" placeholder="Series" id="txtSeriesScanName" /></div>
-                    <div class="col-sm-2"><input type="text" placeholder="Temporadas" id="txtSeriesMaxSeasons" /></div>
-                    <div class="col-sm-2"><input type="text" placeholder="Episodios" id="txtSeriesMaxEpisodes" /></div>
-                    <div class="col-sm-2">
-                        <select id="selSeriesLoaded"></select>
-                    </div>
-                    <div class="col-sm-2">
-                        <button class="btn-primary" id="btnClearSeries">Borrar</button>
-                    </div>
-                </div>
-                <br />
-                <hr />
-
-                <!-- Space for scanned Series title -->
-                <div class="row small">
-                    <div class="col-sm-12" id="divSeriesTitle"></div>
-                </div>
-                <br />
-                <hr />
-
+                
                 <!-- Space for Series Datagrids with episodes -->
-                <div class="row small">
-                    <div class="col-sm-12">
-                        <div id="SeriesDatagridContainer"></div>
+                <div class="row small panel panel-primary" id="divSeriesGridContainer">
+                    <div class="panel-heading"><langtranslate id="LangScannedSeries"></langtranslate><b><span id="divSeriesTitle"></span></b></div>
+                    <div class="panel-body">
+                        <div class="col-sm-12">
+                            <div id="SeriesDatagridContainer"></div>
+                        </div>
                     </div>
                 </div>
-                <br />
-                <hr />
-
+                
                 <!-- Space for data for episode (Plot, Actors...) -->
-                <div class="row small" id="divSeriesDataIMDB">
-                    <div class="col-sm-8" style="text-align: left;">
-                        <b>Trama: </b><span id="spanEpisodePlot"></span><br/>
-                        <b>Actores: </b><span id="spanEpisodeActors"></span><br />
-                        <a id="aLinkImage" target="_blank" rel="noreferrer">Link a la imagen (El hotlinking no está permitido por IMDB)</a><br />
-                        <img id="imgEpisodeImage" src="" />
-                    </div>
-                    <div class="col-sm-2">
-                        <b>Favorito: </b>&nbsp;<input type="checkbox" id="chkMakeFavorite" />
-                    </div>
-                    <div class="col-sm-2">
-                        <b>Puntuación: </b>&nbsp;
-                        <select id="selRateEpisode">
-                            <option value="-1">Sin puntuar</option>
-                            <option value="0">0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                        </select>
+                <div class="row small panel panel-primary" id="divSeriesDataIMDB">
+                    <div class="panel-heading"><langtranslate id="LangEpisodeData"></langtranslate></div>
+                    <div class="panel-body">
+                        <div class="col-sm-8" style="text-align: left;">
+                            <b>Trama: </b><span id="spanEpisodePlot"></span><br/>
+                            <b>Actores: </b><span id="spanEpisodeActors"></span><br /><br />
+                            <a id="aLinkImage" target="_blank" rel="noreferrer">Link a la imagen (El hotlinking no está permitido por IMDB)</a><br /><br />
+                            <img id="imgEpisodeImage" src="" />
+                        </div>
+                        <div class="col-sm-2">
+                            <b>Favorito: </b>&nbsp;<input type="checkbox" id="chkMakeFavorite" />
+                        </div>
+                        <div class="col-sm-2">
+                            <b>Puntuación: </b>&nbsp;
+                            <select id="selRateEpisode">
+                                <option value="-1">Sin puntuar</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <br />
-                <hr />
 
                 <!-- Own review of episode -->
-                <div class="row small" id="divEpisodeOwnReview">
-                    <div class="col-sm-3">Escribe tu propia crítica: </div>
-                    <div class="col-sm-7">
-                        <textarea cols="50" rows="5" id="txtOwnReview" placeholder="¡ Escribe tu propia crítica !"></textarea>
-                    </div>
-                    <div class="col-sm-2" style="vertical-align: bottom; ">
-                        <input type="button" class="btn-primary" id="btnSaveOwnReview" value="Guardar" />
+                <div class="row small panel panel-primary" id="divEpisodeOwnReview">
+                    <div class="panel-heading">Escribe tu propia crítica: </div>                    
+                    <div class="panel-body">
+                        <div class="col-sm-12">
+                            <textarea cols="50" rows="5" id="txtOwnReview" placeholder="¡ Escribe tu propia crítica !"></textarea><br />
+                            <input type="button" class="btn-primary" id="btnSaveOwnReview" value="Guardar" />
+                        </div>
                     </div>
                 </div>
-                <br />
-                <hr />
 
                 <!-- YouTube Results Container Div -->
-                <div id="divYouTubeResults">
-
-                </div>                
+                <div id="divContainerYouTubeResults" class="row panel panel-primary">
+                    <div class="panel-heading">Resultados de YouTube</div>
+                    <div class="panel-body">
+                        <div class="col-sm-12" id="divYouTubeResults"></div>                        
+                    </div>
+                </div>
             </div>
         </div>
         <!-- END MainContainer_0: Series Container -->
 
         <!-- START MainContainer_1: Movies Container -->
-        <div class="container" id="MoviesContainer">
+        <div class="container" id="MainContainer_1">
             <div class="starter-template">
 
                 <!-- Search controls for movie search -->
-                <div class="row small">                    
-                    <div class="col-sm-4"><b>Búsqueda</b></div>
-                    <div class="col-sm-4"><input type="text" id="txtSearchMovies" placeholder="Búsqueda de películas" /></div>
-                    <div class="col-sm-4"><button class="btn-primary" id="btnSearchMovies" />Buscar películas</div>
+                <div class="row small panel panel-success">
+                    <div class="panel-heading">Búsqueda de películas</div>
+                    <div class="panel-body">                    
+                    <div class="col-sm-6"><input type="text" id="txtSearchMovies" placeholder="Película" /></div>
+                    <div class="col-sm-6"><button class="btn-primary" id="btnSearchMovies" />Buscar</div>
+                    </div>
                 </div>
-                <br />
-                <hr />
 
                 <!-- Container for Grid with movie seach results -->
-                <div class="row small" id="divContainerMoviesSearchResults">
-                    <h4>RESULTADOS BÚSQUEDA PELÍCULAS</h4>
-                    <div class="col-sm-4"></div>
-                    <div class="col-sm-4" id="divMoviesSearchResults">
-                        <div id="GridMoviesSearchResults"></div>
-                    </div>
-                    <div class="col-sm-4"></div>
+                <div class="row small panel panel-success" id="divContainerMoviesSearchResults">
+                    <div class="panel-heading">RESULTADOS BÚSQUEDA PELÍCULAS</div>
+                    <div class="panel-body">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-6">
+                            <div id="GridMoviesSearchResults" class="center-block"></div>
+                        </div>
+                        <div class="col-sm-3"></div>
                 </div>
-                <br />
-                <hr />
+                </div>
 
                 <!-- Container for individual movie data -->
-                <div class="row small" id="divContainerMoviesMovieData">                    
+                <div class="row small panel panel-success" id="divContainerMoviesMovieData">
+                    <div class="panel-heading">Datos de la película</div>
+                    <div class="panel-body">
                     <div class="col-sm-6">                        
-                        <b>Trama: </b><span style="text-align: left;" id="spanMoviesMovieDataPlot"></span><br />                        
+                        <b>Trama: </b><span style="text-align: left;" id="spanMoviesMovieDataPlot"></span><br /><br />                        
                     </div>
                     <div class="col-sm-6" style="text-align: left;">
                         <b>Director: </b><span id="spanMoviesMovieDataDirector"></span><br />
@@ -425,48 +435,83 @@ and open the template in the editor.
                         <b>Idioma: </b><span id="spanMoviesMovieDataLanguage"></span><br />
                         <b>Género: </b><span id="spanMoviesMovieDataGenre"></span><br />
                         <b>Duración: </b><span id="spanMoviesMovieDataRuntime"></span>
-                    </div>                    
+                    </div>
+                    </div>
                 </div>
-                <br />
-                <hr />
 
                 <!-- Own review -->
-                <div class="row small" id="divContainerMoviesMovieOwnReview">
-                    <div class="col-sm-3 vertical-align">
-                        ¡ Escrite tu propia crítica !
+                <div class="row small panel panel-success" id="divContainerMoviesMovieOwnReview">
+                    <div class="panel-heading">Escribe una crítica propia</div>
+                    <div class="panel-body">
+                    <div class="col-sm-12">
+                        <textarea id="txtMovieOwnReview" cols="50" rows="5" placeholder="¡ Escribe tu propia crítica !"></textarea><br />
+                        <button class="btn-primary" id="btnSaveMovieOwnReview">Guardar</button>                    
                     </div>
-                    <div class="col-sm-6">
-                        <textarea id="txtMovieOwnReview" cols="50" rows="5" placeholder="¡ Escribe tu propia crítica !"></textarea>
-                    </div>
-                    <div class="col-sm-3">
-                        <button class="btn-primary" id="btnSaveMovieOwnReview">Guardar</button>
                     </div>
                 </div>
-                <br />
-                <hr />
                 
-                <!-- Container for Movie YouTube Results -->
-                <div id="divContainerMoviesMovieYouTubeResults">
-                    
+                <!-- YouTube Results Container Div -->
+                <div class="panel panel-success row">
+                    <div class="panel-heading">Resultados de YouTube</div>
+                    <div class="panel-body">
+                        <div class="col-sm-12" id="divContainerMoviesMovieYouTubeResults"></div>                        
+                    </div>
                 </div>
-
+                
             </div>                        
         </div>
         <!-- END MainContainer_1: Movies Container -->
 
         <!-- START MainContainer_2: Configuration Container -->
-        <div class="container" id="ConfigContainer">
-            <div class="starter-template">
-                <div class="row small">
-                    <div class="col-sm-12">
-                        Controles de configuración: <br />
-                        <ul>
-                            <li>Idioma</li>
-                            <li>Num. resultados YouTube</li>
-                            <li>...</li>
-                        </ul>
+        <div class="container" id="MainContainer_2">
+            <div class="starter-template">                
+                <div class="row panel panel-danger">
+                    <div class="panel-heading">Configuración de aplicación</div>
+                    <div class="panel-body">
+                        <div class="row small">
+                            <div class="col-sm-6"><b>Temporadas escaneadas por defecto: </b></div>
+                            <div class="col-sm-6"><input type="text" id="txtConfigSeasonsDefault" placeholder="Temporadas" /></div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-sm-6"><b>Episodios escaneados por defecto</b></div>
+                            <div class="col-sm-6"><input type="text" id="txtConfigEpisodesDefault" placeholder="Episodios" /></div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-sm-6"><b>Clave de API YouTube</b></div>
+                            <div class="col-sm-6"><input type="text" id="txtConfigYouTubeAPIKey" placeholder="YouTube API key" /></div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-sm-6"><b>Idioma de la aplicación</b></div>
+                            <div class="col-sm-6">
+                                <select id="selConfigAppLang">
+                                    <option value="es">Español</option>
+                                    <option value="en">Inglés</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-sm-6"><b>Origen y almacenaje de datos</b></div>
+                            <div class="col-sm-6">
+                                <select id="selConfigDataOrigin">
+                                    <option value="0">localStorage (Browser)</option>
+                                    <option value="1">PHP + MySQL</option>
+                                    <option value="2">node.js + MySQL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-sm-6"><b></b></div>
+                            <div class="col-sm-6"></div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-sm-6"><b></b></div>
+                            <div class="col-sm-6"></div>
+                        </div><div class="row small">
+                            <div class="col-sm-6"><b></b></div>
+                            <div class="col-sm-6"></div>
+                        </div>                        
                     </div>
-                </div>
+                </div>                
             </div>            
         </div>
         <!-- END MainContainer_2: Configuration Container -->

@@ -1,5 +1,3 @@
-function Season(oSeries) {
-    this.oSeriesContains = oSeries;
-    this.iSeason = -1;
+function Season() {
     this.Episodes = [];
 };

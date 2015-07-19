@@ -17,12 +17,12 @@ function OMDBAPIClient(sInstanceName) {
     /**
      * Max number of seasons to scan for
      */
-    this.iMaxSeasons = 2;
+    this.iMaxSeasons = 7;
 
     /**
      * Max number of episodes to scan for in a season
      */
-    this.iMaxEpisodes = 10;
+    this.iMaxEpisodes = 30;
 
     this.iEpisodesAdded = 0;
     this.iEpisodesMissed = 0;
@@ -82,8 +82,7 @@ OMDBAPIClient.prototype.initObject = function (iSeasons, iEpisodes) {
     this.iMaxSeasons = (iSeasons > 0) ? iSeasons : this.iMaxSeasons;
     this.iMaxEpisodes = (iEpisodes > 0) ? iEpisodes : this.iMaxEpisodes;
     this.iMaxEpisodesScanned = this.iMaxSeasons * this.iMaxEpisodes;
-    this.oLastScannedSeries = {};
-    this.oLastScannedSeries.Seasons = new Array();
+    this.oLastScannedSeries = new Series();    
     for (var i = 0; i < this.iMaxSeasons; i++) {
         this.oLastScannedSeries.Seasons[i] = {};
         this.oLastScannedSeries.Seasons[i].Episodes = new Array();
@@ -303,6 +302,7 @@ OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, 
     this.iEpisodesAdded++;
 
     if (this.iEpisodesMissed === this.iMaxEpisodesScanned) {
+        this.oLastScannedSeries.sName = sAJAXSeriesName;
         $.event.trigger("OMDBAPIClient::ScanSeries::KO");
     } else if (this.iEpisodesAdded === this.iMaxEpisodesScanned) {
         this.sSeriesName = sAJAXSeriesName;
@@ -377,6 +377,7 @@ OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisod
     var _self = this;
 
     this.sSeriesName = sSeriesName;
+    this.oLastScannedSeries.sName = sSeriesName;
     for (var i = 0; i < iSeasonsMax; i++) {
         for (var j = 0; j < iEpisodesMax; j++) {
             $.ajax({
@@ -413,9 +414,9 @@ OMDBAPIClient.prototype.saveSeriesData = function () {
     // Al volver a serializar, se queda vacío. Resolver de alguna forma
     if (this.iDataOrigin === 0) {
         if (typeof (Storage) !== "undefined") {
-            var sKey = "OMDBAPI_Series_" + this.sSeriesName.replace(" ", "_");
-            // console.log(JSON.stringify(this.oLastScannedSeries));
-            // localStorage.setItem(sKey, JSON.stringify(this.oLastScannedSeries));
+            var sKey = "OMDBAPI_Series_" + this.oLastScannedSeries.sName.replace(" ", "_");
+            console.log(JSON.stringify(this.oLastScannedSeries));
+            localStorage.setItem(sKey, JSON.stringify(this.oLastScannedSeries));
             // console.log("Serie Guardada");
         } else {
             throw "No hay localStorage. Cambia la configuración a otro tipo de almacenamiento si quieres guardar datos";

@@ -17,4 +17,11 @@ body {
 }
 
 .navbar-nav > li > a {padding-top:10px !important; padding-bottom:10px !important;}
-.navbar {min-height:40px !important}
+.navbar {min-height:30px !important}
+.navbar-brand {
+    min-height: 30px;
+}
+
+.table-full-width {
+    width: 100%;
+}

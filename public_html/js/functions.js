@@ -1,21 +1,20 @@
-function showSeriesMainContainer() {    
-    $("#SeriesContainer").show();
-    $("#MoviesContainer").hide();
-    $("#ConfigContainer").hide();
+function showMainContainer(iContainer) {
+    for(var i = 0; i < 3; i++) {
+        var sIDDiv = "MainContainer_" + i;        
+        var sIDLink = "MainContainerLI_" + i;
+        $("#" + sIDLink).removeClass("active");
+        
+        console.log(i);
+        console.log(iContainer);
+        
+        if(parseInt(iContainer) === i) {
+            $("#" + sIDDiv).show();
+            $("#" + sIDLink).addClass("active");
+        } else {
+            $("#" + sIDDiv).hide();            
+        }
+    }
 }
-
-function showMoviesMainContainer() {
-    $("#SeriesContainer").hide();
-    $("#MoviesContainer").show();
-    $("#ConfigContainer").hide();
-}
-
-function showConfigMainContainer() {
-    $("#SeriesContainer").hide();
-    $("#MoviesContainer").hide();
-    $("#ConfigContainer").show();
-}
-
 
 function hideEpisodeData() {
     $("#SeriesDatagridContainer").html("");
@@ -33,31 +32,42 @@ function hideMovieData() {
     $("#divContainerMoviesMovieYouTubeResults").hide();
 }
 
+function showMovieSearchData() {
+    $("#divContainerMoviesSearchResults").show();    
+}
+
 function showMovieData() {
-    $("#divContainerMoviesSearchResults").show();
     $("#divContainerMoviesMovieData").show();
     $("#divContainerMoviesMovieOwnReview").show();
     $("#divContainerMoviesMovieYouTubeResults").show();
 }
 
-function renderYouTubePagination(iPage, iMax) {
-    var sHTML = "<ul class='pagination'>";
-    for (var i = iPage; i < iMax; i++) {
-        sHTML += "<li class='"
-        if (i === iPage) {
-            sHTML += "active";
-        }
-        sHTML += "'><a href='#'>" + i + "</a>";
-    }
+function makeYouTubePaginationRequest(sPageToken, sSearchTerm, sDivRender) {
+    var oRequest = gapi.client.youtube.search.list({
+        q: sSearchTerm,
+        part: 'snippet',
+        maxResults: 4,
+        pageToken: sPageToken
+    });
+    oRequest.execute(function(oYouTubeData) {
+        console.log(oYouTubeData);
+        renderYouTubeResults(oYouTubeData, sDivRender, sSearchTerm);
+    });  
+}
+
+function renderYouTubePagination(sPageToken, sSearchTerm, sDivRender) {
+    var sHTML = "<ul class='pagination'>";    
+        sHTML += "<li>";
+        sHTML += "<a href=\"javascript:makeYouTubePaginationRequest('" + sPageToken + "', '" + sSearchTerm.replace('\'', '') + "', '" + sDivRender + "');\">Next</a>";
+    
     sHTML += "</ul>";
     return sHTML;
 }
 
-function renderYouTubeResults(oResults, sDivRender) {
-    console.log("renderYouTubeResults");
+function renderYouTubeResults(oResults, sDivRender, sSearchTerm) {
     console.log(oResults);
-    var sHTML = "<H4>YOUTUBE RELATED VIDEOS</H4>";
     var iCount = 0;
+    var sHTML = "";
     for (var i = 0; i < oResults.items.length; i++) {
         if (i % 2 === 0) {
             sHTML += "<div class='row small'>";
@@ -73,12 +83,13 @@ function renderYouTubeResults(oResults, sDivRender) {
         }
     }
     
+    sHTML += renderYouTubePagination(oResults.nextPageToken, sSearchTerm, sDivRender);
     $("#" + sDivRender).html(sHTML);
 
 }
 
 function renderSeasonTabsAndCaptions(iSeasons) {
-    var sHTMLCaption = "<div class='container'><ul class='nav nav-tabs' role='tablist'>";
+    var sHTMLCaption = "<div><ul class='nav nav-tabs' role='tablist'>";
     var sHTMLContentPanels = "<div class='tab-content'>";
 
     // Create tabs-clickable captions
@@ -126,6 +137,7 @@ function gridOnClickRowHandler(oEpisode) {
 
     // Youtube stuff now... :-D
     //@TODO: YouTube PageToken
+    //  + "Season " + oEpisode.iSeason + " Episode " + oEpisode.iEpisodeInSeason;
     var sReq = oEpisode.sSeriesName + " " + oEpisode.sTitle;
     var request = gapi.client.youtube.search.list({
         q: sReq,
@@ -134,16 +146,18 @@ function gridOnClickRowHandler(oEpisode) {
     });
     
     request.execute(function (oYouTubeData) {
-        renderYouTubeResults(oYouTubeData, "divYouTubeResults");
+        renderYouTubeResults(oYouTubeData, "divYouTubeResults", sReq);
     });
+    
+    $("#divContainerYouTubeResults").show();
     
     document.getElementById("aLinkImage").href = oEpisode.sPosterURL;
     document.getElementById("imgEpisodeImage").src = oEpisode.sPosterURL;
 }
 
-function renderGrids(iSeasons) {       
-    for (var i = 0; i < iSeasons; i++) {
-        var sNameGrid = "Grid_" + i;
+function renderGrids(iSeasons) {    
+    for (var i = 0; i < iSeasons; i++) {        
+        var sNameGrid = "Grid_" + i;        
         $("#" + sNameGrid).bootstrapTable({
             sortable: true,
             maintainSelected: true,
@@ -165,5 +179,18 @@ function renderGrids(iSeasons) {
             data: oClient.oLastScannedSeries.Seasons[i].Episodes,
             onClickRow: gridOnClickRowHandler
         });
+    }
+}
+
+function i18nTranslate(sID) {
+    var aLangTranslate;
+    if(sID === undefined || sID === "") {
+        aLangTranslate = $("langtranslate");
+    } else {
+        aLangTranslate = [];
+        aLangTranslate[0] = $("langtranslate[id=" + sID + "]");
+    }    
+    for(var i = 0; i < aLangTranslate.length; i++) {        
+        aLangTranslate[i].innerHTML = gbl_oAppLangStrings[gbl_aAppConfig.sBrowserLanguage][aLangTranslate[i].id];
     }
 }

@@ -307,12 +307,7 @@ OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, 
     this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisode;
     this.iEpisodesAdded++;
     
-    console.log("Episodes Added (%): " + Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100));
-    console.log(this.iEpisodesAdded);
-    // $("#spanOverlayProgress").show();
-    $("#divOverlayProgress").html(Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100) + " %");
-    console.log($("#divOverlayProgress"));
-    console.log($("#divOverlayProgress").html);
+    $("#divOverlayProgress").html(Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100) + " %");    
 
     if (this.iEpisodesMissed === this.iMaxEpisodesScanned) {
         this.oLastScannedSeries.sName = sAJAXSeriesName;

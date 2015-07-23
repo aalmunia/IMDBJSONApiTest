@@ -1,21 +1,16 @@
-function showSeriesMainContainer() {    
-    $("#SeriesContainer").show();
-    $("#MoviesContainer").hide();
-    $("#ConfigContainer").hide();
+function showMainContainer(iContainer) {
+    for (var i = 0; i < 3; i++) {
+        var sIDDiv = "MainContainer_" + i;
+        var sIDLink = "MainContainerLI_" + i;
+        $("#" + sIDLink).removeClass("active");
+        if (parseInt(iContainer) === i) {
+            $("#" + sIDDiv).show();
+            $("#" + sIDLink).addClass("active");
+        } else {
+            $("#" + sIDDiv).hide();
+        }
+    }
 }
-
-function showMoviesMainContainer() {
-    $("#SeriesContainer").hide();
-    $("#MoviesContainer").show();
-    $("#ConfigContainer").hide();
-}
-
-function showConfigMainContainer() {
-    $("#SeriesContainer").hide();
-    $("#MoviesContainer").hide();
-    $("#ConfigContainer").show();
-}
-
 
 function hideEpisodeData() {
     $("#SeriesDatagridContainer").html("");
@@ -33,31 +28,50 @@ function hideMovieData() {
     $("#divContainerMoviesMovieYouTubeResults").hide();
 }
 
-function showMovieData() {
+function showMovieSearchData() {
     $("#divContainerMoviesSearchResults").show();
+}
+
+function showMovieData() {
     $("#divContainerMoviesMovieData").show();
     $("#divContainerMoviesMovieOwnReview").show();
     $("#divContainerMoviesMovieYouTubeResults").show();
 }
 
-function renderYouTubePagination(iPage, iMax) {
+function makeYouTubePaginationRequest(sPageToken, sSearchTerm, sDivRender) {
+    var oRequest = gapi.client.youtube.search.list({
+        q: sSearchTerm,
+        part: 'snippet',
+        maxResults: 4,
+        pageToken: sPageToken
+    });
+    oRequest.execute(function (oYouTubeData) {
+        console.log(oYouTubeData);
+        renderYouTubeResults(oYouTubeData, sDivRender, sSearchTerm);
+    });
+}
+
+function renderYouTubePagination(oPageToken, sSearchTerm, sDivRender) {
     var sHTML = "<ul class='pagination'>";
-    for (var i = iPage; i < iMax; i++) {
-        sHTML += "<li class='"
-        if (i === iPage) {
-            sHTML += "active";
-        }
-        sHTML += "'><a href='#'>" + i + "</a>";
+    if (oPageToken.sPagePrev !== "") {
+        sHTML += "<li>";
+        sHTML += "<a href=\"javascript:makeYouTubePaginationRequest('" + oPageToken.sPagePrev + "', '" + sSearchTerm.replace('\'', '') + "', '" + sDivRender + "');\"><img src='img/left_arrow.png' width='50' height='50' /></a>";
+        sHTML += "</li>";
     }
+    if (oPageToken.sPageNext !== "") {
+        sHTML += "<li>";
+        sHTML += "<a href=\"javascript:makeYouTubePaginationRequest('" + oPageToken.sPageNext + "', '" + sSearchTerm.replace('\'', '') + "', '" + sDivRender + "');\"><img src='img/right_arrow.png' width='50' height='50' /></a>";
+        sHTML += "</li>";
+    }
+
     sHTML += "</ul>";
     return sHTML;
 }
 
-function renderYouTubeResults(oResults, sDivRender) {
-    console.log("renderYouTubeResults");
+function renderYouTubeResults(oResults, sDivRender, sSearchTerm) {
     console.log(oResults);
-    var sHTML = "<H4>YOUTUBE RELATED VIDEOS</H4>";
     var iCount = 0;
+    var sHTML = "";
     for (var i = 0; i < oResults.items.length; i++) {
         if (i % 2 === 0) {
             sHTML += "<div class='row small'>";
@@ -72,13 +86,19 @@ function renderYouTubeResults(oResults, sDivRender) {
             sHTML += "</div>";
         }
     }
-    
+
+    var oPageToken = {
+        sPageNext: (oResults.nextPageToken !== undefined) ? oResults.nextPageToken : "",
+        sPagePrev: (oResults.prevPageToken !== undefined) ? oResults.prevPageToken : ""
+    };
+
+    sHTML += renderYouTubePagination(oPageToken, sSearchTerm, sDivRender);
     $("#" + sDivRender).html(sHTML);
 
 }
 
 function renderSeasonTabsAndCaptions(iSeasons) {
-    var sHTMLCaption = "<div class='container'><ul class='nav nav-tabs' role='tablist'>";
+    var sHTMLCaption = "<div><ul class='nav nav-tabs' role='tablist'>";
     var sHTMLContentPanels = "<div class='tab-content'>";
 
     // Create tabs-clickable captions
@@ -98,12 +118,13 @@ function renderSeasonTabsAndCaptions(iSeasons) {
     sHTMLCaption += "</ul>";
     sHTMLContentPanels += "</div></div>";
     var sFinalHTML = sHTMLCaption + sHTMLContentPanels;
+
     $("#SeriesDatagridContainer").html(sFinalHTML);
 }
 
 function gridOnClickRowHandler(oEpisode) {
     oSelectedEpisode = oEpisode;
-    if (oEpisode.iIMDBID === 0) {
+    if (oEpisode.sIMDBID === 0) {
         return false;
     }
     $("#divSeriesDataIMDB").show();
@@ -115,23 +136,30 @@ function gridOnClickRowHandler(oEpisode) {
         $("#spanEpisodeActors").html(oEpisode.aActors.join(", "));
     }
 
+    var isFav = (oEpisode.bIsFavorite === true) ? true : false;
+    console.log(isFav);
+
+    $("#chkMakeFavorite").prop('checked', isFav);
+    $("#selRateEpisode").val(oEpisode.iPersonalRating);
+
     $("#txtOwnReview").val(oEpisode.sPersonalReview);
 
     // Youtube stuff now... :-D
     //@TODO: YouTube PageToken
+    //  + "Season " + oEpisode.iSeason + " Episode " + oEpisode.iEpisodeInSeason;
     var sReq = oEpisode.sSeriesName + " " + oEpisode.sTitle;
     var request = gapi.client.youtube.search.list({
         q: sReq,
         part: 'snippet',
         maxResults: 4
     });
-    
+
     request.execute(function (oYouTubeData) {
-        renderYouTubeResults(oYouTubeData, "divYouTubeResults");
+        renderYouTubeResults(oYouTubeData, "divYouTubeResults", sReq);
     });
-    
-    // request.execute.apply(renderYouTubeResults, "divYouTubeResults");
-    
+
+    $("#divContainerYouTubeResults").show();
+
     document.getElementById("aLinkImage").href = oEpisode.sPosterURL;
     document.getElementById("imgEpisodeImage").src = oEpisode.sPosterURL;
 }
@@ -142,23 +170,58 @@ function renderGrids(iSeasons) {
         $("#" + sNameGrid).bootstrapTable({
             sortable: true,
             maintainSelected: true,
-            classes: 'table table-hover table-condensed',            
+            classes: 'table table-hover table-condensed',
             columns: [
-                {field: 'iEpisodeInSeason', title: 'Episodio', formatter: function (value) {
+                {field: 'iEpisodeInSeason', width: '8%', title: 'Ep', formatter: function (value) {
                         return value + 1;
                     }, sortable: true},
-                {field: 'sTitle', title: 'Título', sortable: true},
-                {field: 'fIMDBRating', title: 'Valoración IMDB', sortable: true},
-                {field: 'fRuntime', title: 'Duración'},
-                {field: 'iYear', title: 'Año', sortable: true},
-                {field: 'iPersonalRating', title: 'Puntuación', sortable: true},
-                {field: 'iIMDBVotes', title: 'Votos IMDB', sortable: true},
-                {field: 'sReleaseDate', title: 'Estrenado'},
-                {field: 'bIsFavorite', title: '¿Favorito?', sortable: true},
-                {field: 'sPersonalReview', visible: false}
+                {field: 'sTitle', width: '44%', title: 'Título', sortable: true},
+                {field: 'fIMDBRating', width: '8%', title: 'Rating', sortable: true},
+                {field: 'fRuntime', title: 'Duración', width: '8%'},
+                {field: 'iYear', width: '8%', title: 'Año', sortable: true},
+                {field: 'iPersonalRating', width: '8%', title: 'Puntuación', sortable: true, formatter: function (a, b, c) {
+                        var sHTML = "";
+                        if (b.iPersonalRating > -1) {
+                            for (var i = 0; i < b.iPersonalRating; i++) {
+                                sHTML += "<img src='img/icon-star.png' />";
+                            }
+                        }
+                        return sHTML;
+                    }},
+                {field: 'iIMDBVotes', width: '8%', title: 'Votos IMDB', sortable: true},
+                /* {field: 'sReleaseDate', width: '8%', title: 'Estrenado'}, */
+                {field: 'bIsFavorite', width: '8%', title: '¿Favorito?', sortable: true, formatter: function (a, b, c) {
+                        if (b.bIsFavorite === true) {
+                            return "<img src='img/favorites-icon.png' />";
+                        } else {
+                            return "";
+                        }
+                    }},
+                {field: 'sPersonalReview', visible: false},
+                {field: 'iEpisodeInSeason', visible: false}
             ],
             data: oClient.oLastScannedSeries.Seasons[i].Episodes,
             onClickRow: gridOnClickRowHandler
         });
     }
+}
+
+function i18nTranslate(sID) {
+    var aLangTranslate;
+    if (sID === undefined || sID === "") {
+        aLangTranslate = $("langtranslate");
+    } else {
+        aLangTranslate = [];
+        aLangTranslate[0] = $("langtranslate[id=" + sID + "]");
+    }
+    for (var i = 0; i < aLangTranslate.length; i++) {
+        aLangTranslate[i].innerHTML = gbl_oAppLangStrings[gbl_aAppConfig.sBrowserLanguage][aLangTranslate[i].id];
+    }
+}
+
+function createNotification(sMessage, iTimeClose) {
+    var oNotify = $.notify(sMessage);
+    setTimeout(function () {
+        oNotify.close();
+    }, iTimeClose);
 }

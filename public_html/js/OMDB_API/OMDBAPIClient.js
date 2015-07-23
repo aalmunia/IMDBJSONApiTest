@@ -17,12 +17,12 @@ function OMDBAPIClient(sInstanceName) {
     /**
      * Max number of seasons to scan for
      */
-    this.iMaxSeasons = 2;
+    this.iMaxSeasons = 7;
 
     /**
      * Max number of episodes to scan for in a season
      */
-    this.iMaxEpisodes = 10;
+    this.iMaxEpisodes = 30;
 
     this.iEpisodesAdded = 0;
     this.iEpisodesMissed = 0;
@@ -82,8 +82,7 @@ OMDBAPIClient.prototype.initObject = function (iSeasons, iEpisodes) {
     this.iMaxSeasons = (iSeasons > 0) ? iSeasons : this.iMaxSeasons;
     this.iMaxEpisodes = (iEpisodes > 0) ? iEpisodes : this.iMaxEpisodes;
     this.iMaxEpisodesScanned = this.iMaxSeasons * this.iMaxEpisodes;
-    this.oLastScannedSeries = {};
-    this.oLastScannedSeries.Seasons = new Array();
+    this.oLastScannedSeries = new Series();    
     for (var i = 0; i < this.iMaxSeasons; i++) {
         this.oLastScannedSeries.Seasons[i] = {};
         this.oLastScannedSeries.Seasons[i].Episodes = new Array();
@@ -139,10 +138,13 @@ OMDBAPIClient.prototype.query = function (oStruct) {
     });
 };
 
-OMDBAPIClient.prototype.getMovieByID = function (iIMDBID) {
+OMDBAPIClient.prototype.getMovieByID = function (sIMDBID) {
     var oAjax = {
-        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getMovieByID(iIMDBID),
+        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getMovieByID(sIMDBID),
         funcSuccessHandler: function (oData) {
+            /* if(oData.Response === undefined) {
+                oData = JSON.parse(oData);
+            } */
             if (oData.Response === "False") {
                 $.event.trigger("OMDBAPIClient::GetMovieByID::KO");
             } else {
@@ -187,7 +189,10 @@ OMDBAPIClient.prototype.searchMovies = function (sSearch) {
     var oAjax = {
         /* sURL: this.sOMDBAPIBaseURL + "?s=" + sSearch + "&type=movie&plot=full", */
         sURL: gbl_aDataOriginsURL[this.iDataOrigin].searchMovies(sSearch),
-        funcSuccessHandler: function (oData) {
+        funcSuccessHandler: function (oData) {            
+            if(oData.Search === undefined) {
+                oData = JSON.parse(oData);
+            }
             if (oData.Response === "False") {
                 $.event.trigger("OMDBAPIClient::SearchMovies::KO");
             } else {
@@ -224,9 +229,9 @@ OMDBAPIClient.prototype.getSeriesByTitle = function (sTitle) {
     this.JSONRequest(oAjax);
 };
 
-OMDBAPIClient.prototype.getSeriesByID = function (iIMDBID) {
+OMDBAPIClient.prototype.getSeriesByID = function (sIMDBID) {
     var oAjax = {
-        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getSeriesByID(iIMDBID),
+        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getSeriesByID(sIMDBID),
         funcSuccessHandler: function (oData) {
             if (oData.Response === "False") {
                 $.event.trigger("OMDBAPIClient::GetSeriesByID::KO");
@@ -275,15 +280,16 @@ OMDBAPIClient.prototype.getEpisodeBySeriesName = function (sName, iSeason, iEpis
     this.JSONRequest(oAjax);
 };
 
-OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, sAJAXSeriesName) {
+OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, sAJAXSeriesName, oNotificationObject) {
     var oEpisode = new Episode();
+    
     if (oEpisodeData.Response === "True") {
         oEpisode.sTitle = oEpisodeData.Title;
         oEpisode.fIMDBRating = oEpisodeData.imdbRating;
         oEpisode.iYear = oEpisodeData.Year;
         oEpisode.sPlot = oEpisodeData.Plot;
         oEpisode.fRuntime = oEpisodeData.Runtime;
-        oEpisode.iIMDBID = oEpisodeData.imdbID;
+        oEpisode.sIMDBID = oEpisodeData.imdbID;
         oEpisode.iIMDBVotes = oEpisodeData.imdbVotes;
         oEpisode.iSeriesIMDBID = oEpisodeData.seriesID;
         oEpisode.sReleaseDate = oEpisodeData.Released;
@@ -300,12 +306,19 @@ OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, 
 
     this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisode;
     this.iEpisodesAdded++;
+    
+    var sPercentDone = Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100) + " %";
+    var sMessage = "Escaneado " + sPercentDone + " del total...";
+    oNotificationObject.update('message', sMessage);
 
     if (this.iEpisodesMissed === this.iMaxEpisodesScanned) {
-        $.event.trigger("OMDBAPIClient::ScanSeries::KO");
+        this.oLastScannedSeries.sName = sAJAXSeriesName;
+        oNotificationObject.close();
+        $.event.trigger("OMDBAPIClient::ScanSeries::KO");        
     } else if (this.iEpisodesAdded === this.iMaxEpisodesScanned) {
         this.sSeriesName = sAJAXSeriesName;
         this.cleanSeriesArray();
+        oNotificationObject.close();
         $.event.trigger("OMDBAPIClient::ScanSeries::OK", this.sInstanceName);
     }
 
@@ -314,7 +327,7 @@ OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, 
 OMDBAPIClient.prototype.isSeasonEmpty = function (oSeason) {
     var iEmpty = 0;
     for (var i = 0; i < oSeason.Episodes.length; i++) {
-        if (oSeason.Episodes[i].iIMDBID === 0) {
+        if (oSeason.Episodes[i].sIMDBID === 0) {
             ++iEmpty;
         }
     }
@@ -328,12 +341,9 @@ OMDBAPIClient.prototype.isSeasonEmpty = function (oSeason) {
 OMDBAPIClient.prototype.cleanSeasonArray = function (iSeason) {
     var iEpisodes = this.oLastScannedSeries.Seasons[iSeason].Episodes.length;
     var aNewEpisodes = [];
-    var iNewEpisodes = 0;    
-    for(var i = 0; i < iEpisodes; i++) {
-        console.log(i);
-        console.log(this.oLastScannedSeries.Seasons[iSeason].Episodes);
-        if (this.oLastScannedSeries.Seasons[iSeason].Episodes[i].iIMDBID !== 0) {
-            // this.oLastScannedSeries.Seasons[iSeason].Episodes.splice(i, 1);
+    var iNewEpisodes = 0;
+    for (var i = 0; i < iEpisodes; i++) {        
+        if (this.oLastScannedSeries.Seasons[iSeason].Episodes[i].sIMDBID !== 0) {            
             aNewEpisodes[iNewEpisodes] = this.oLastScannedSeries.Seasons[iSeason].Episodes[i];
             iNewEpisodes++;
         }
@@ -369,15 +379,19 @@ OMDBAPIClient.prototype.cleanSeriesArray = function () {
  * @param {Integer} iEpisodesMax The max number of episodes to scan for in each season
  * @returns {undefined}
  */
-OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisodesMax) {
+OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisodesMax) {    
     this.iEpisodesAdded = 0;
     this.iEpisodesMissed = 0;
     this.initObject(iSeasonsMax, iEpisodesMax);
     var _self = this;
 
     this.sSeriesName = sSeriesName;
+    this.oLastScannedSeries.sName = sSeriesName;
+    
+    var oNotify = $.notify("Escaneando serie... ");    
+    
     for (var i = 0; i < iSeasonsMax; i++) {
-        for (var j = 0; j < iEpisodesMax; j++) {
+        for (var j = 0; j < iEpisodesMax; j++) {            
             $.ajax({
                 url: gbl_aDataOriginsURL[this.iDataOrigin].scanSeriesIMDB(sSeriesName, i, j),
                 type: 'json',
@@ -385,11 +399,14 @@ OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisod
                 async: (_self.useSyncAjaxMode === true) ? false : true,
                 iSeason: i,
                 iEpisode: j,
+                timeout: 15000,
+                oNotificationObject: oNotify,
                 sAJAXSeriesName: sSeriesName,
                 success: function (data) {
-                    _self.addEpisode(data, this.iSeason, this.iEpisode, this.sAJAXSeriesName);
+                    _self.addEpisode(data, this.iSeason, this.iEpisode, this.sAJAXSeriesName, this.oNotificationObject);
                 },
-                error: function (oError) {
+                error: function (oError) {                    
+                    _self.addEpisode({Response: "False"}, this.iSeason, this.iEpisode, this.sAJAXSeriesName, this.oNotificationObject);
                     console.log("AJAX Error: ");
                     console.log(oError);
                 }
@@ -405,13 +422,37 @@ OMDBAPIClient.prototype.saveSeriesData = function () {
     for (var i = 0; i < this.oLastScannedSeries.Seasons.length; i++) {
         var sGrid = "#Grid_" + i;
         var oDataGrid = $(sGrid).bootstrapTable('getData');
-        console.log(oDataGrid);
+        this.oLastScannedSeries.Seasons[i] = oDataGrid;
     }
+    
+    var sJSONString = JSON.stringify(this.oLastScannedSeries);
 
-
+    //@TODO: El nombre de la serie está vacío tras la deserialización
+    // Al volver a serializar, se queda vacío. Resolver de alguna forma
     if (this.iDataOrigin === 0) {
-
+        if (typeof (Storage) !== "undefined") {
+            var sKey = "OMDBAPI_Series_" + this.oLastScannedSeries.sName.replace(" ", "_");
+            console.log(sJSONString);
+            localStorage.setItem(sKey, sJSONString);
+            $.event.trigger("OMDBAPIClient::SaveSeriesData::OK");
+        } else {
+            $.event.trigger("OMDBAPIClient::SaveSeriesData::KO");
+        }
     } else if (this.iDataOrigin === 1) {
+        // Servicios POST de escritura de datos
+        var sURL = document.location + 'php/index.php/series/saveSeries/';
+        $.ajax({
+            url: sURL,
+            data: oClient.oLastScannedSeries,
+            type: 'json',
+            method: 'POST',
+            success: function(data) {
+                console.log(data);
+            },
+            error: function(data) {
+                
+            }
+        });
 
     } else if (this.iDataOrigin === 2) {
 
@@ -420,5 +461,33 @@ OMDBAPIClient.prototype.saveSeriesData = function () {
         console.log("Error saving Series Data");
         console.log("Value of iDataOrigin for Object OMDBAPIClient, instance: " + this.sInstanceName);
         console.log(this.iDataOrigin);
+    }
+};
+
+
+OMDBAPIClient.prototype.loadSeriesData = function (idSelect) {
+
+    // var iLoaded = 0;
+    if (this.iDataOrigin === 0) {
+        if (typeof (Storage) !== "undefined") {
+            for (var prop in localStorage) {
+                if (prop.indexOf("OMDBAPI_Series") !== -1) {
+                    var sOptionName = prop.replace("OMDBAPI_Series_", "").replace("_", " ");
+                    var optSeriesNew = document.createElement('option');
+                    optSeriesNew.value = prop;
+                    optSeriesNew.innerHTML = sOptionName;
+                    $("#" + idSelect).append(optSeriesNew);
+                }
+            }
+        } else {
+            throw "No hay localStorage. Cambia la configuración a otro tipo de almacenamiento si quieres guardar datos";
+        }
+    } else if (this.iDataOrigin === 1) {
+        // Servicios GET de lectura de datos
+        
+    } else if (this.iDataOrigin === 2) {
+
+    } else {
+
     }
 };

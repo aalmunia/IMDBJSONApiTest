@@ -87,3 +87,9 @@ things:
 
 I didn't branch in the end. Maybe if time was not so much of constraint...
 so much to implement and so little time. :-D
+
+DAY 5
+
+This looks like a real app. It needs more refactoring, and some more error validation, 
+but... it's really something. I hope they like it and the many hours worked in this project have
+not been in vain

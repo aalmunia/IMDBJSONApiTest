@@ -4,11 +4,11 @@ var gbl_aDataOriginsURL = [
         searchSeries: function(sSeriesTitle) {
             return oClient.sOMDBAPIBaseURL + "?s=" + sSeriesTitle + "&type=series&plot=full";
         },
-        getMovieByID: function(iIMDBID) {
-            return oClient.sOMDBAPIBaseURL + "?i=" + iIMDBID + "&plot=full";
+        getMovieByID: function(sIMDBID) {
+            return oClient.sOMDBAPIBaseURL + "?i=" + sIMDBID + "&plot=full";
         },
-        getSeriesByID: function(iIMDBID) {
-            return oClient.sOMDBAPIBaseURL + "?i=" + iIMDBID + "&plot=full";
+        getSeriesByID: function(sIMDBID) {
+            return oClient.sOMDBAPIBaseURL + "?i=" + sIMDBID + "&plot=full";
         },
         getSeriesByTitle: function(sTitle) {
             return oClient.sOMDBAPIBaseURL + "?t=" + sTitle + "&type=movie&plot=full";
@@ -31,16 +31,16 @@ var gbl_aDataOriginsURL = [
     // gbl_aAppConfig.sPHPSecurityToken - Cuando implementes el handshake
     {
         searchSeries: function(sSeriesTitle) {
-            return "/php/app.php/searchSeries/" + sSeriesTitle + "/plot/full/";
+            return document.location + "/php/index.php/searchSeries/" + sSeriesTitle;
         },
-        getMovieByID: function(iIMDBID) {
-            return "/php/app.php/getMovieByID/" + iIMDBID + "/plot/full/";
+        getMovieByID: function(sIMDBID) {
+            return document.location + "/php/index.php/getMovieByID/" + sIMDBID;
         },
-        getSeriesByID: function(iIMDBID) {
-            return "/php/app.php/getSeriesByID/" + iIMDBID + "/plot/full/";
+        getSeriesByID: function(sIMDBID) {
+            return document.location + "/php/index.php/getSeriesByID/" + sIMDBID;
         },
         searchMovies: function(sSearch) {
-            
+            return document.location + "/php/index.php/searchMovies/" + sSearch;
         }
     },
     // node.js + MySQL

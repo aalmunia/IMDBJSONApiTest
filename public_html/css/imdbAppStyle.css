@@ -8,8 +8,38 @@ and open the template in the editor.
     Author     : AAlmunia
 */
 
+/* @TODO: Media queries for mobile devices */
+
+@media all and (max-width: 800px) {
+    body {
+        font-size: 9pt;
+    }    
+    input {
+        font-size: 9pt;
+    }
+    
+    .form-control {
+        font-size: 9pt;
+    }
+}
+
+@media all and (min-width: 800px) {
+    body {
+        font-size: 11pt;
+    }
+    
+    input {
+        font-size: 11pt;
+    }
+    
+    .form-control {
+        font-size: 11pt;
+    }
+}
+
 body {
   padding-top: 50px;
+  font-family: Verdana;  
 }
 .starter-template {
   padding: 40px 15px;
@@ -17,4 +47,28 @@ body {
 }
 
 .navbar-nav > li > a {padding-top:10px !important; padding-bottom:10px !important;}
-.navbar {min-height:40px !important}
+.navbar {min-height:30px !important}
+.navbar-brand {
+    min-height: 30px;
+}
+
+.table-full-width {
+    width: 100%;
+}
+
+#divOverlay {
+    font-size: 28pt;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 11000;
+    background: white;
+    opacity: 1;
+    display: block;
+}
+
+#divOverlayProgress {    
+    font-size: 28pt;
+}

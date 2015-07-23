@@ -124,7 +124,7 @@ function renderSeasonTabsAndCaptions(iSeasons) {
 
 function gridOnClickRowHandler(oEpisode) {
     oSelectedEpisode = oEpisode;
-    if (oEpisode.iIMDBID === 0) {
+    if (oEpisode.sIMDBID === 0) {
         return false;
     }
     $("#divSeriesDataIMDB").show();

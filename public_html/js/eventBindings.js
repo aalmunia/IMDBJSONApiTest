@@ -29,14 +29,14 @@ $(document).bind("OMDBAPIClient::ScanSeries::OK", function (oEvent) {
     $("#divSeriesTitle").html(sSeriesTitle);
     renderSeasonTabsAndCaptions(iSeasons);
     renderGrids(iSeasons);
-    $("#divOverlay").hide();
+    // $("#divOverlay").hide();
     showMainContainer(0);
     $("#divSeriesGridContainer").show();
 });
 
 $(document).bind("OMDBAPIClient::ScanSeries::KO", function () {
     alert("No episodes found for that series");
-    $("#divOverlay").hide();
+    // $("#divOverlay").hide();
     showMainContainer(0);
     return false;
 });

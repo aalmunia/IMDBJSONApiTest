@@ -138,9 +138,9 @@ OMDBAPIClient.prototype.query = function (oStruct) {
     });
 };
 
-OMDBAPIClient.prototype.getMovieByID = function (iIMDBID) {
+OMDBAPIClient.prototype.getMovieByID = function (sIMDBID) {
     var oAjax = {
-        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getMovieByID(iIMDBID),
+        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getMovieByID(sIMDBID),
         funcSuccessHandler: function (oData) {
             /* if(oData.Response === undefined) {
                 oData = JSON.parse(oData);
@@ -229,9 +229,9 @@ OMDBAPIClient.prototype.getSeriesByTitle = function (sTitle) {
     this.JSONRequest(oAjax);
 };
 
-OMDBAPIClient.prototype.getSeriesByID = function (iIMDBID) {
+OMDBAPIClient.prototype.getSeriesByID = function (sIMDBID) {
     var oAjax = {
-        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getSeriesByID(iIMDBID),
+        sURL: gbl_aDataOriginsURL[this.iDataOrigin].getSeriesByID(sIMDBID),
         funcSuccessHandler: function (oData) {
             if (oData.Response === "False") {
                 $.event.trigger("OMDBAPIClient::GetSeriesByID::KO");
@@ -280,16 +280,16 @@ OMDBAPIClient.prototype.getEpisodeBySeriesName = function (sName, iSeason, iEpis
     this.JSONRequest(oAjax);
 };
 
-OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, sAJAXSeriesName) {
+OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, sAJAXSeriesName, oNotificationObject) {
     var oEpisode = new Episode();
-    // var oEpisode = new Object();
+    
     if (oEpisodeData.Response === "True") {
         oEpisode.sTitle = oEpisodeData.Title;
         oEpisode.fIMDBRating = oEpisodeData.imdbRating;
         oEpisode.iYear = oEpisodeData.Year;
         oEpisode.sPlot = oEpisodeData.Plot;
         oEpisode.fRuntime = oEpisodeData.Runtime;
-        oEpisode.iIMDBID = oEpisodeData.imdbID;
+        oEpisode.sIMDBID = oEpisodeData.imdbID;
         oEpisode.iIMDBVotes = oEpisodeData.imdbVotes;
         oEpisode.iSeriesIMDBID = oEpisodeData.seriesID;
         oEpisode.sReleaseDate = oEpisodeData.Released;
@@ -307,14 +307,18 @@ OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, 
     this.oLastScannedSeries.Seasons[iSeason].Episodes[iEpisode] = oEpisode;
     this.iEpisodesAdded++;
     
-    $("#divOverlayProgress").html(Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100) + " %");    
+    var sPercentDone = Math.floor((this.iEpisodesAdded / this.iMaxEpisodesScanned) * 100) + " %";
+    var sMessage = "Escaneado " + sPercentDone + " del total...";
+    oNotificationObject.update('message', sMessage);
 
     if (this.iEpisodesMissed === this.iMaxEpisodesScanned) {
         this.oLastScannedSeries.sName = sAJAXSeriesName;
-        $.event.trigger("OMDBAPIClient::ScanSeries::KO");
+        oNotificationObject.close();
+        $.event.trigger("OMDBAPIClient::ScanSeries::KO");        
     } else if (this.iEpisodesAdded === this.iMaxEpisodesScanned) {
         this.sSeriesName = sAJAXSeriesName;
         this.cleanSeriesArray();
+        oNotificationObject.close();
         $.event.trigger("OMDBAPIClient::ScanSeries::OK", this.sInstanceName);
     }
 
@@ -323,7 +327,7 @@ OMDBAPIClient.prototype.addEpisode = function (oEpisodeData, iSeason, iEpisode, 
 OMDBAPIClient.prototype.isSeasonEmpty = function (oSeason) {
     var iEmpty = 0;
     for (var i = 0; i < oSeason.Episodes.length; i++) {
-        if (oSeason.Episodes[i].iIMDBID === 0) {
+        if (oSeason.Episodes[i].sIMDBID === 0) {
             ++iEmpty;
         }
     }
@@ -339,8 +343,7 @@ OMDBAPIClient.prototype.cleanSeasonArray = function (iSeason) {
     var aNewEpisodes = [];
     var iNewEpisodes = 0;
     for (var i = 0; i < iEpisodes; i++) {        
-        if (this.oLastScannedSeries.Seasons[iSeason].Episodes[i].iIMDBID !== 0) {
-            // this.oLastScannedSeries.Seasons[iSeason].Episodes.splice(i, 1);
+        if (this.oLastScannedSeries.Seasons[iSeason].Episodes[i].sIMDBID !== 0) {            
             aNewEpisodes[iNewEpisodes] = this.oLastScannedSeries.Seasons[iSeason].Episodes[i];
             iNewEpisodes++;
         }
@@ -384,6 +387,9 @@ OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisod
 
     this.sSeriesName = sSeriesName;
     this.oLastScannedSeries.sName = sSeriesName;
+    
+    var oNotify = $.notify("Escaneando serie... ");    
+    
     for (var i = 0; i < iSeasonsMax; i++) {
         for (var j = 0; j < iEpisodesMax; j++) {            
             $.ajax({
@@ -393,11 +399,14 @@ OMDBAPIClient.prototype.scanSeries = function (sSeriesName, iSeasonsMax, iEpisod
                 async: (_self.useSyncAjaxMode === true) ? false : true,
                 iSeason: i,
                 iEpisode: j,
+                timeout: 15000,
+                oNotificationObject: oNotify,
                 sAJAXSeriesName: sSeriesName,
                 success: function (data) {
-                    _self.addEpisode(data, this.iSeason, this.iEpisode, this.sAJAXSeriesName);
+                    _self.addEpisode(data, this.iSeason, this.iEpisode, this.sAJAXSeriesName, this.oNotificationObject);
                 },
-                error: function (oError) {
+                error: function (oError) {                    
+                    _self.addEpisode({Response: "False"}, this.iSeason, this.iEpisode, this.sAJAXSeriesName, this.oNotificationObject);
                     console.log("AJAX Error: ");
                     console.log(oError);
                 }
@@ -415,19 +424,35 @@ OMDBAPIClient.prototype.saveSeriesData = function () {
         var oDataGrid = $(sGrid).bootstrapTable('getData');
         this.oLastScannedSeries.Seasons[i] = oDataGrid;
     }
+    
+    var sJSONString = JSON.stringify(this.oLastScannedSeries);
 
     //@TODO: El nombre de la serie está vacío tras la deserialización
     // Al volver a serializar, se queda vacío. Resolver de alguna forma
     if (this.iDataOrigin === 0) {
         if (typeof (Storage) !== "undefined") {
             var sKey = "OMDBAPI_Series_" + this.oLastScannedSeries.sName.replace(" ", "_");
-            console.log(JSON.stringify(this.oLastScannedSeries));
-            localStorage.setItem(sKey, JSON.stringify(this.oLastScannedSeries));
-            // console.log("Serie Guardada");
+            console.log(sJSONString);
+            localStorage.setItem(sKey, sJSONString);
+            $.event.trigger("OMDBAPIClient::SaveSeriesData::OK");
         } else {
-            throw "No hay localStorage. Cambia la configuración a otro tipo de almacenamiento si quieres guardar datos";
+            $.event.trigger("OMDBAPIClient::SaveSeriesData::KO");
         }
     } else if (this.iDataOrigin === 1) {
+        // Servicios POST de escritura de datos
+        var sURL = document.location + 'php/index.php/series/saveSeries/';
+        $.ajax({
+            url: sURL,
+            data: oClient.oLastScannedSeries,
+            type: 'json',
+            method: 'POST',
+            success: function(data) {
+                console.log(data);
+            },
+            error: function(data) {
+                
+            }
+        });
 
     } else if (this.iDataOrigin === 2) {
 
@@ -440,7 +465,7 @@ OMDBAPIClient.prototype.saveSeriesData = function () {
 };
 
 
-OMDBAPIClient.prototype.loadSeries = function (idSelect) {
+OMDBAPIClient.prototype.loadSeriesData = function (idSelect) {
 
     // var iLoaded = 0;
     if (this.iDataOrigin === 0) {
@@ -458,7 +483,8 @@ OMDBAPIClient.prototype.loadSeries = function (idSelect) {
             throw "No hay localStorage. Cambia la configuración a otro tipo de almacenamiento si quieres guardar datos";
         }
     } else if (this.iDataOrigin === 1) {
-
+        // Servicios GET de lectura de datos
+        
     } else if (this.iDataOrigin === 2) {
 
     } else {

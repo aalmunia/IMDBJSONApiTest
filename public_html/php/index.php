@@ -68,4 +68,11 @@ $app->get("/img/{sName}/{imdbID}/", function($sName, $imdbID) use ($app) {
     return $curl_response; */
 });
 
+$app->post("/series/saveSeries/", function() use ($app) {
+    echo "<pre>";    
+    print_r($_POST);    
+    echo "</pre>";
+    return true;
+});
+
 $app->run();

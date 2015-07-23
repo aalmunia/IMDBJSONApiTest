@@ -45,6 +45,12 @@ and open the template in the editor.
         <script src="js/libs/bootstrap-notify-master/bootstrap-notify.js"></script>
 
         <script>
+            
+            /**
+             * @TODO: implementar _18n_('key', 'lang')
+             * TWIG !!!!!!!!!!!!!!!!!!!!!!!
+             * @returns {undefined}
+             */
 
             String.prototype.capitalize = function () {
                 return this.charAt(0).toUpperCase() + this.slice(1);
@@ -68,9 +74,7 @@ and open the template in the editor.
                 console.log("YouTube API loaded");
             }
 
-            function initiateSeriesScan(sSeriesName, iRow) {
-                showMainContainer(-1);
-                $("#divOverlay").show();
+            function initiateSeriesScan(sSeriesName, iRow) {                
                 var iSeasons = $("#txtSeriesGridSeasons_" + iRow).val();
                 var iEpisodes = $("#txtSeriesGridEpisodes_" + iRow).val();
                 oClient.initObject(iSeasons, iEpisodes);
@@ -79,9 +83,7 @@ and open the template in the editor.
 
             // Start bootstrapping of app
             $(document).ready(function () {
-
-
-
+                
                 i18nTranslate();
                 $("#txtOwnReview");
 
@@ -104,7 +106,7 @@ and open the template in the editor.
                 hideMovieData();
 
                 // We load the series we have saved in the combobox
-                oClient.loadSeries("selSeriesLoaded");
+                oClient.loadSeriesData("selSeriesLoaded");
                 $("#selSeriesLoaded").select2({
                     width: '100%',
                     sortResults: function (results, container, query) {
@@ -121,9 +123,7 @@ and open the template in the editor.
                 /**************************************************************/
 
 
-                $("#btnGetSeries").click(function () {
-                    showMainContainer(-1);
-                    $("#divOverlay").show();
+                $("#btnGetSeries").click(function () {                    
                     var iSeasonsInput = ($("#txtSeriesMaxSeasons").val() !== "") ? $("#txtSeriesMaxSeasons").val() : oClient.iMaxSeasons;
                     var iEpisodesInput = ($("#txtSeriesMaxEpisodes").val() !== "") ? $("#txtSeriesMaxEpisodes").val() : oClient.iMaxEpisodes;
                     hideEpisodeData();
@@ -261,7 +261,7 @@ and open the template in the editor.
         <!-- END NavBar -->
 
 
-        <div id="divOverlay">
+        <!-- <div id="divOverlay">
             <div class="container">
                 <div class="starter-template">
                     <div class="row panel panel-primary">
@@ -274,7 +274,7 @@ and open the template in the editor.
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <!-- START MainContainer_0: Series Data Container -->
         <div class="container" id="MainContainer_0">

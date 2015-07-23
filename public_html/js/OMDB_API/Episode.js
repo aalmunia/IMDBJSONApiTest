@@ -8,7 +8,7 @@ function Episode() {
     this.bIsFavorite = false;
     this.iYear = 0;
     this.sPlot = "";
-    this.iIMDBID = 0;
+    this.sIMDBID = 0;
     this.iIMDBVotes = 0;
     this.aYouTubeAssocID = [];
     this.aGenres = [];

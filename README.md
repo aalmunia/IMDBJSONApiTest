@@ -26,4 +26,5 @@ for the entire series, if you scanned enough. On clicking any of
 them, you can see the plot, a combo to rate it, and...
 ... a little surprise. :-D
 
-Esto es una modificación
+Esto es una modificación.
+Y esto es otra modificación.
